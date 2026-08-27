@@ -1,0 +1,56 @@
+package com.budgettracker.app
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.budgettracker.app.data.FinanceRepository
+import com.budgettracker.app.data.PrefsRepository
+import com.budgettracker.app.data.UserPrefs
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class AppViewModel @Inject constructor(
+    private val prefsRepository: PrefsRepository,
+    financeRepository: FinanceRepository,
+) : ViewModel() {
+
+    val prefs: StateFlow<UserPrefs> = prefsRepository.prefs
+        .stateIn(viewModelScope, SharingStarted.Eagerly, UserPrefs())
+
+    private val _locked = MutableStateFlow(false)
+    val locked: StateFlow<Boolean> = _locked
+
+    private var pausedAt: Long? = null
+
+    init {
+        viewModelScope.launch {
+            // Seed defaults once onboarding has been completed (or on restore).
+            val p = prefsRepository.prefs.first { it.onboardingDone }
+            financeRepository.ensureDefaultData(p.baseCurrency)
+            _locked.value = p.biometricLock
+        }
+    }
+
+    fun onAppPaused() {
+        if (!_locked.value) pausedAt = System.currentTimeMillis()
+    }
+
+    fun onAppResumed() {
+        val paused = pausedAt ?: return
+        pausedAt = null
+        val away = System.currentTimeMillis() - paused
+        if (prefs.value.biometricLock && away > 30_000L) {
+            _locked.value = true
+        }
+    }
+
+    fun unlock() {
+        _locked.value = false
+    }
+}
