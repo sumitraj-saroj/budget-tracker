@@ -9,6 +9,7 @@ import com.budgettracker.app.auth.GoogleAuthClient
 import com.budgettracker.app.data.PrefsRepository
 import com.budgettracker.app.data.UserPrefs
 import com.budgettracker.app.data.backup.BackupManager
+import com.budgettracker.app.notifications.ReminderScheduler
 import com.budgettracker.app.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ class SettingsViewModel @Inject constructor(
     private val prefsRepository: PrefsRepository,
     private val backupManager: BackupManager,
     private val googleAuth: GoogleAuthClient,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
     val prefs: StateFlow<UserPrefs> = prefsRepository.prefs
@@ -41,7 +43,7 @@ class SettingsViewModel @Inject constructor(
         _message.value = null
     }
 
-    private fun showMessage(text: String) {
+    fun showMessage(text: String) {
         _message.value = text
     }
 
@@ -75,6 +77,29 @@ class SettingsViewModel @Inject constructor(
 
     fun setBiometricLock(enabled: Boolean) {
         viewModelScope.launch { prefsRepository.setBiometricLock(enabled) }
+    }
+
+    fun setRemindersEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepository.setRemindersEnabled(enabled)
+        }
+        if (enabled) {
+            reminderScheduler.ensureScheduled()
+        } else {
+            reminderScheduler.cancelAll()
+        }
+    }
+
+    fun setBudgetAlerts(enabled: Boolean) {
+        viewModelScope.launch { prefsRepository.setBudgetAlerts(enabled) }
+    }
+
+    fun setDueReminders(enabled: Boolean) {
+        viewModelScope.launch { prefsRepository.setDueReminders(enabled) }
+    }
+
+    fun setDueDaysAhead(days: Int) {
+        viewModelScope.launch { prefsRepository.setDueDaysAhead(days) }
     }
 
     fun signInWithGoogle(activity: Activity) {

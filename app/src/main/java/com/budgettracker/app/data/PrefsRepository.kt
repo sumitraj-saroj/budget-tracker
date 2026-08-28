@@ -5,12 +5,17 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.budgettracker.app.domain.ReminderLogic
 import com.budgettracker.app.ui.theme.ThemeMode
+import com.budgettracker.app.util.Fmt
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +36,11 @@ data class UserPrefs(
     val googleName: String? = null,
     val googlePicture: String? = null,
     val lastBackupAt: Long? = null,
+    val remindersEnabled: Boolean = true,
+    val budgetAlerts: Boolean = true,
+    val dueReminders: Boolean = true,
+    val dueDaysAhead: Int = 3,
+    val notificationAsked: Boolean = false,
 )
 
 @Singleton
@@ -51,6 +61,12 @@ class PrefsRepository @Inject constructor(
         val GOOGLE_NAME = stringPreferencesKey("google_name")
         val GOOGLE_PICTURE = stringPreferencesKey("google_picture")
         val LAST_BACKUP = longPreferencesKey("last_backup_at")
+        val REMINDERS_ENABLED = booleanPreferencesKey("reminders_enabled")
+        val BUDGET_ALERTS = booleanPreferencesKey("budget_alerts")
+        val DUE_REMINDERS = booleanPreferencesKey("due_reminders")
+        val DUE_DAYS_AHEAD = intPreferencesKey("due_days_ahead")
+        val NOTIFICATION_ASKED = booleanPreferencesKey("notification_permission_asked")
+        val NOTIFIED_KEYS = stringSetPreferencesKey("notified_alert_keys")
     }
 
     val prefs: Flow<UserPrefs> = context.dataStore.data.map { p ->
@@ -68,6 +84,11 @@ class PrefsRepository @Inject constructor(
             googleName = p[Keys.GOOGLE_NAME],
             googlePicture = p[Keys.GOOGLE_PICTURE],
             lastBackupAt = p[Keys.LAST_BACKUP],
+            remindersEnabled = p[Keys.REMINDERS_ENABLED] ?: true,
+            budgetAlerts = p[Keys.BUDGET_ALERTS] ?: true,
+            dueReminders = p[Keys.DUE_REMINDERS] ?: true,
+            dueDaysAhead = p[Keys.DUE_DAYS_AHEAD] ?: 3,
+            notificationAsked = p[Keys.NOTIFICATION_ASKED] ?: false,
         )
     }
 
@@ -100,6 +121,33 @@ class PrefsRepository @Inject constructor(
     }
 
     suspend fun setLastBackupAt(at: Long) = context.dataStore.edit { it[Keys.LAST_BACKUP] = at }
+
+    // ---------- Reminder prefs ----------
+
+    suspend fun setRemindersEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.REMINDERS_ENABLED] = enabled }
+
+    suspend fun setBudgetAlerts(enabled: Boolean) = context.dataStore.edit { it[Keys.BUDGET_ALERTS] = enabled }
+
+    suspend fun setDueReminders(enabled: Boolean) = context.dataStore.edit { it[Keys.DUE_REMINDERS] = enabled }
+
+    suspend fun setDueDaysAhead(days: Int) = context.dataStore.edit { it[Keys.DUE_DAYS_AHEAD] = days }
+
+    suspend fun setNotificationAsked(asked: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATION_ASKED] = asked }
+
+    /** Keys of reminders already sent, used to avoid notifying about the same thing twice. */
+    suspend fun notifiedKeys(): Set<String> = context.dataStore.data.first()[Keys.NOTIFIED_KEYS] ?: emptySet()
+
+    /** Merges [keys] into the notified set, pruning stale entries. */
+    suspend fun markNotified(keys: Set<String>, now: Long) {
+        if (keys.isEmpty()) return
+        context.dataStore.edit { p ->
+            val merged = (p[Keys.NOTIFIED_KEYS] ?: emptySet()) + keys
+            p[Keys.NOTIFIED_KEYS] = ReminderLogic.pruneNotifiedKeys(
+                keys = merged,
+                todayEpochDay = Fmt.toLocalDate(now).toEpochDay(),
+            )
+        }
+    }
 
     /** Restore prefs from a backup (only user-visible choices, no security flags). */
     suspend fun restoreFromBackup(

@@ -9,6 +9,7 @@ import com.budgettracker.app.data.db.DebtDao
 import com.budgettracker.app.data.db.GoalDao
 import com.budgettracker.app.data.db.SubscriptionDao
 import com.budgettracker.app.data.db.TxDao
+import androidx.work.WorkManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,4 +45,9 @@ object AppModule {
 
     @Provides
     fun provideSubscriptionDao(db: AppDatabase): SubscriptionDao = db.subscriptionDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 }

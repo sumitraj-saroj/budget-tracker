@@ -1,6 +1,9 @@
 package com.budgettracker.app.ui.settings
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -23,12 +26,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -57,6 +62,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.budgettracker.app.security.BiometricAvailability
@@ -99,6 +105,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let { viewModel.importBackup(context, it) }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.setRemindersEnabled(granted)
+        if (!granted) viewModel.showMessage("Notification permission denied — reminders stay off")
     }
 
     Scaffold(
@@ -293,6 +305,83 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
                         "${prefs.baseCurrency} ${Currencies.byCode(prefs.baseCurrency).symbol}",
                         style = MaterialTheme.typography.titleSmall,
                     )
+                }
+            }
+
+            // ---- Reminders ----
+            SettingsCard(title = "Reminders") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.size(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Enable reminders", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Budget and due-date alerts, even when the app is closed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = prefs.remindersEnabled,
+                        onCheckedChange = { enabled ->
+                            when {
+                                !enabled -> viewModel.setRemindersEnabled(false)
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED ->
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                else -> viewModel.setRemindersEnabled(true)
+                            }
+                        },
+                    )
+                }
+                if (prefs.remindersEnabled) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Budget alerts", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Notify at 80% and 100% of each budget",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = prefs.budgetAlerts,
+                            onCheckedChange = { viewModel.setBudgetAlerts(it) },
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Due-date reminders", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Upcoming subscriptions and debts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = prefs.dueReminders,
+                            onCheckedChange = { viewModel.setDueReminders(it) },
+                        )
+                    }
+                    if (prefs.dueReminders) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            "Remind me before",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(1 to "1 day", 3 to "3 days", 7 to "1 week").forEach { (days, label) ->
+                                FilterChip(
+                                    selected = prefs.dueDaysAhead == days,
+                                    onClick = { viewModel.setDueDaysAhead(days) },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

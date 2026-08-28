@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.budgettracker.app.data.FinanceRepository
 import com.budgettracker.app.data.PrefsRepository
 import com.budgettracker.app.data.UserPrefs
+import com.budgettracker.app.notifications.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AppViewModel @Inject constructor(
     private val prefsRepository: PrefsRepository,
+    private val reminderScheduler: ReminderScheduler,
     financeRepository: FinanceRepository,
 ) : ViewModel() {
 
@@ -63,5 +65,11 @@ class AppViewModel @Inject constructor(
 
     fun unlock() {
         _locked.value = false
+    }
+
+    /** Called once when the one-time notification permission prompt finishes. */
+    fun onNotificationPermissionResult(granted: Boolean) {
+        viewModelScope.launch { prefsRepository.setNotificationAsked(true) }
+        if (granted) reminderScheduler.ensureScheduled()
     }
 }

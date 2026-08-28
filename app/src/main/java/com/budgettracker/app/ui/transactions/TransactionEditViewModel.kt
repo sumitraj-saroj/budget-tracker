@@ -9,6 +9,7 @@ import com.budgettracker.app.data.db.CategoryEntity
 import com.budgettracker.app.data.db.CategoryType
 import com.budgettracker.app.data.db.TxEntity
 import com.budgettracker.app.data.db.TxType
+import com.budgettracker.app.notifications.ReminderScheduler
 import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.convertMinor
 import com.budgettracker.app.util.parseAmountMinor
@@ -44,6 +45,7 @@ data class TxEditState(
 @HiltViewModel
 class TransactionEditViewModel @Inject constructor(
     private val repo: FinanceRepository,
+    private val reminderScheduler: ReminderScheduler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -234,6 +236,7 @@ class TransactionEditViewModel @Inject constructor(
                         note = s.note.trim(),
                     ),
                 )
+                if (s.type == TxType.EXPENSE) reminderScheduler.checkNow()
                 onDone()
             }
         } else {
@@ -253,6 +256,7 @@ class TransactionEditViewModel @Inject constructor(
                         note = s.note.trim(),
                     ),
                 )
+                if (s.type == TxType.EXPENSE) reminderScheduler.checkNow()
                 onDone()
             }
         }

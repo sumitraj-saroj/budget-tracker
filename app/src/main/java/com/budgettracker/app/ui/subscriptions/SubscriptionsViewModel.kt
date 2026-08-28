@@ -8,6 +8,7 @@ import com.budgettracker.app.data.db.AccountEntity
 import com.budgettracker.app.data.db.CategoryEntity
 import com.budgettracker.app.data.db.Cycle
 import com.budgettracker.app.data.db.SubscriptionEntity
+import com.budgettracker.app.notifications.ReminderScheduler
 import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.convertMinor
@@ -40,6 +41,7 @@ data class SubsUiState(
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     private val repo: FinanceRepository,
+    private val reminderScheduler: ReminderScheduler,
     prefsRepository: PrefsRepository,
 ) : ViewModel() {
 
@@ -113,7 +115,10 @@ class SubscriptionsViewModel @Inject constructor(
     }
 
     fun markPaid(subscription: SubscriptionEntity) {
-        viewModelScope.launch { repo.markSubscriptionPaid(subscription) }
+        viewModelScope.launch {
+            repo.markSubscriptionPaid(subscription)
+            reminderScheduler.checkNow()
+        }
     }
 
     fun toggleActive(subscription: SubscriptionEntity) {
