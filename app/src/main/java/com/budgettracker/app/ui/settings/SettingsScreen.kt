@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -206,7 +207,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
                 Text("Accent color", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 AccentGrid(
                     selected = Color(prefs.accentArgb.toInt()),
-                    onSelect = { viewModel.setAccent(it.value.toLong() and 0xFFFFFFFFL) },
+                    onSelect = { viewModel.setAccent(it.toArgb().toLong() and 0xFFFFFFFFL) },
                     onCustom = { showCustomColor = true },
                 )
             }
@@ -357,7 +358,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
             initial = Color(prefs.accentArgb.toInt()),
             onDismiss = { showCustomColor = false },
             onPick = {
-                viewModel.setAccent(it.value.toLong() and 0xFFFFFFFFL)
+                viewModel.setAccent(it.toArgb().toLong() and 0xFFFFFFFFL)
                 showCustomColor = false
             },
         )

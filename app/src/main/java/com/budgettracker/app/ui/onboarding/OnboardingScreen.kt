@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -202,7 +203,14 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
                         Text(if (step == 0) "Next" else "Next")
                     }
                 } else {
-                    Button(onClick = { viewModel.complete(name, currency, themeMode, accent.value.toLong() and 0xFFFFFFFFL) }) {
+                    Button(onClick = {
+                        viewModel.complete(
+                            name = name,
+                            currency = currency,
+                            themeMode = themeMode,
+                            accentArgb = accent.toArgb().toLong() and 0xFFFFFFFFL,
+                        )
+                    }) {
                         Text("Get started")
                     }
                 }
