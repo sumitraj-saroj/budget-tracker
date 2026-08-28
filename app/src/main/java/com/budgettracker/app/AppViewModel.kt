@@ -20,8 +20,13 @@ class AppViewModel @Inject constructor(
     financeRepository: FinanceRepository,
 ) : ViewModel() {
 
-    val prefs: StateFlow<UserPrefs> = prefsRepository.prefs
-        .stateIn(viewModelScope, SharingStarted.Eagerly, UserPrefs())
+    /**
+     * Null until DataStore has emitted once — lets the UI (and the splash
+     * screen) hold until real prefs are available, avoiding flashes of
+     * default state like the onboarding screen on every cold launch.
+     */
+    val prefs: StateFlow<UserPrefs?> = prefsRepository.prefs
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _locked = MutableStateFlow(false)
     val locked: StateFlow<Boolean> = _locked
@@ -45,7 +50,7 @@ class AppViewModel @Inject constructor(
         val paused = pausedAt ?: return
         pausedAt = null
         val away = System.currentTimeMillis() - paused
-        if (prefs.value.biometricLock && away > 30_000L) {
+        if (prefs.value?.biometricLock == true && away > 30_000L) {
             _locked.value = true
         }
     }

@@ -4,9 +4,14 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -16,8 +21,8 @@ import com.budgettracker.app.ui.onboarding.OnboardingScreen
 
 @Composable
 fun AppRoot(appViewModel: AppViewModel) {
-    val prefs by appViewModel.prefs.collectAsStateWithLifecycle()
-    val locked by appViewModel.locked.collectAsStateWithLifecycle()
+    val prefs = appViewModel.prefs.collectAsStateWithLifecycle().value
+    val locked = appViewModel.locked.collectAsStateWithLifecycle().value
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -32,19 +37,12 @@ fun AppRoot(appViewModel: AppViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    AnimatedContent(
-        targetState = when {
-            !prefs.onboardingDone -> 0
-            locked -> 1
-            else -> 2
-        },
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "root",
-    ) { state ->
-        when (state) {
-            0 -> OnboardingScreen()
-            1 -> LockScreen(onUnlock = appViewModel::unlock)
-            else -> MainNavHost()
-        }
+    when {
+        // Hold a blank surface until prefs load — the splash screen stays up
+        // during this window, so nothing flickers.
+        prefs == null -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        !prefs.onboardingDone -> OnboardingScreen()
+        locked -> LockScreen(onUnlock = appViewModel::unlock)
+        else -> MainNavHost()
     }
 }
