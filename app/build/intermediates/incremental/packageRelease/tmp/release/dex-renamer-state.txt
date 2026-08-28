@@ -1,4 +1,0 @@
-#Fri Aug 28 09:36:25 IST 2026
-base.0=/home/sumit/Github/budget-tracker/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
-path.0=classes.dex
-renamed.0=classes.dex
