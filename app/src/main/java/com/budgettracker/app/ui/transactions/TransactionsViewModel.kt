@@ -186,7 +186,9 @@ class TransactionsViewModel @Inject constructor(
 
     fun undoDelete() {
         viewModelScope.launch {
-            lastDeleted?.let { repo.saveTx(it) }
+            // Re-insert with a NEW id so the list item gets a fresh swipe state
+            // (re-using the old id would restore the row partially dismissed).
+            lastDeleted?.let { repo.saveTx(it.copy(id = 0, createdAt = System.currentTimeMillis())) }
             lastDeleted = null
         }
     }

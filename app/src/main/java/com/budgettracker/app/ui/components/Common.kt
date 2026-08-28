@@ -192,7 +192,13 @@ fun <T> SwipeDeleteBox(
                 Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
             }
         },
-        content = { content() },
+        content = {
+            // Opaque surface so the red swipe background never shows through
+            // the row while it is at rest.
+            Box(Modifier.background(MaterialTheme.colorScheme.background)) {
+                content()
+            }
+        },
     )
 }
 
@@ -344,14 +350,17 @@ fun TxListItem(
             }
         }
         AmountText(
-            amountMinor = tx.amountMinor,
+            amountMinor = when (tx.type) {
+                TxType.EXPENSE -> -tx.amountMinor
+                else -> tx.amountMinor
+            },
             currencyCode = item.account?.currencyCode ?: "USD",
             color = when (tx.type) {
                 TxType.EXPENSE -> MaterialTheme.colorScheme.onSurface
                 TxType.INCOME -> IncomeGreen
                 TxType.TRANSFER -> MaterialTheme.colorScheme.tertiary
             },
-            signed = tx.type != TxType.TRANSFER,
+            signed = tx.type == TxType.INCOME,
         )
     }
 }
