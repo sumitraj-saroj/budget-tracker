@@ -57,13 +57,13 @@ savings goals, subscriptions, and debts in one place. Built with a modern native
 
 ## Build & run
 
-Requirements: Android Studio Ladybug+ (or JDK 17+), Android SDK 35.
+Requirements: Android Studio (or JDK 17+), Android SDK 36.
 
 ```bash
 # Debug build
 ./gradlew assembleDebug
 
-# Release build (signed with debug key for local install)
+# Release build (minified, signed with debug key for local install)
 ./gradlew assembleRelease
 
 # Install on a connected device
