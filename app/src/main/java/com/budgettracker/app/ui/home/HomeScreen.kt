@@ -116,7 +116,13 @@ fun HomeScreen(
             item { QuietRow("Tap + to record your first transaction.", "Add", onAddTx) }
         } else {
             items(state.recent, key = { "tx-${it.tx.id}" }) { tx ->
-                TxListItem(item = tx, onClick = { onTxClick(tx.tx.id) })
+                // +12dp outer padding so the row aligns with section labels
+                // (TxListItem has its own 8dp internal padding).
+                TxListItem(
+                    item = tx,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    onClick = { onTxClick(tx.tx.id) },
+                )
             }
         }
     }
