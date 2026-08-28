@@ -120,21 +120,38 @@ fun TransactionsScreen(
                 Spacer(Modifier.weight(1f))
                 Box {
                     IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.Rounded.Sort, contentDescription = "Sort")
+                        Icon(Icons.Rounded.Sort, contentDescription = "Sort and group")
                     }
                     DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                        Text(
+                            "GROUP BY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                        listOf(
+                            "Day" to TxGrouping.DAY,
+                            "Category" to TxGrouping.CATEGORY,
+                            "Month" to TxGrouping.MONTH,
+                        ).forEach { (label, grouping) ->
+                            DropdownMenuItem(
+                                text = { Text(if (state.grouping == grouping) "✓ $label" else label) },
+                                onClick = {
+                                    viewModel.setGrouping(grouping)
+                                    showSortMenu = false
+                                },
+                            )
+                        }
+                        androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                        Text(
+                            "SORT BY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
                         TxSort.entries.forEach { option ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        when (option) {
-                                            TxSort.NEWEST -> "Newest first"
-                                            TxSort.OLDEST -> "Oldest first"
-                                            TxSort.LARGEST -> "Largest amount"
-                                            TxSort.SMALLEST -> "Smallest amount"
-                                        },
-                                    )
-                                },
+                                text = { Text(if (state.sort == option) "✓ ${sortLabel(option)}" else sortLabel(option)) },
                                 onClick = {
                                     viewModel.setSort(option)
                                     showSortMenu = false
@@ -283,10 +300,11 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     state.groups.forEach { group ->
-                        stickyHeader(key = "header-${group.dateMillis}") {
-                            DayHeader(
+                        stickyHeader(key = "header-${group.key}") {
+                            GroupHeader(
                                 group = group,
                                 baseCurrencyCode = state.baseCurrency,
+                                highlight = state.filter.query.takeIf { it.isNotBlank() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.background)
@@ -314,6 +332,7 @@ fun TransactionsScreen(
                                     TxListItem(
                                         item = item,
                                         showDate = false,
+                                        highlight = state.filter.query.takeIf { it.isNotBlank() },
                                         onClick = { onTxClick(item.tx.id) },
                                         onLongClick = { menuForTx = item },
                                     )
@@ -376,13 +395,27 @@ fun TransactionsScreen(
     }
 }
 
+private fun sortLabel(option: TxSort) = when (option) {
+    TxSort.NEWEST -> "Newest first"
+    TxSort.OLDEST -> "Oldest first"
+    TxSort.LARGEST -> "Largest amount"
+    TxSort.SMALLEST -> "Smallest amount"
+}
+
 @Composable
-private fun DayHeader(group: DayGroup, baseCurrencyCode: String, modifier: Modifier = Modifier) {
+private fun GroupHeader(group: TxGroup, baseCurrencyCode: String, highlight: String?, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(group.label, style = MaterialTheme.typography.titleSmall)
+        Text(
+            com.budgettracker.app.ui.components.annotatedWithMatch(
+                group.label,
+                highlight,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+            ),
+            style = MaterialTheme.typography.titleSmall,
+        )
         Spacer(Modifier.weight(1f))
         if (group.incomeBase > 0) {
             Text(

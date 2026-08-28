@@ -43,6 +43,6 @@ fun AppRoot(appViewModel: AppViewModel) {
         prefs == null -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
         !prefs.onboardingDone -> OnboardingScreen()
         locked -> LockScreen(onUnlock = appViewModel::unlock)
-        else -> MainNavHost()
+        else -> MainNavHost(appViewModel = appViewModel)
     }
 }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +31,11 @@ class AppViewModel @Inject constructor(
 
     private val _locked = MutableStateFlow(false)
     val locked: StateFlow<Boolean> = _locked
+
+    /** Used for the backup badge on the nav bar. */
+    val txCount: StateFlow<Int> = financeRepository.transactions
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private var pausedAt: Long? = null
 

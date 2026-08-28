@@ -146,6 +146,116 @@ class FinanceRepository @Inject constructor(
         }
     }
 
+    /** Seeds a realistic sample dataset so the app doesn't look empty. */
+    suspend fun seedDemoData(baseCurrency: String) {
+        if (txDao.count() > 0) return
+        val bankId = accountDao.insert(
+            AccountEntity(
+                name = "HDFC Bank",
+                emoji = "🏦",
+                colorArgb = 0xFF3B82F6,
+                type = AccountType.BANK,
+                currencyCode = baseCurrency,
+                startingBalanceMinor = 2_500_000,
+            ),
+        )
+        val cash = accountDao.byId(1) ?: return
+        val cats = categoryDao.snapshot()
+        fun cat(name: String) = cats.firstOrNull { it.name == name }?.id
+        val now = System.currentTimeMillis()
+        fun daysAgo(n: Long) = now - n * 86_400_000L
+
+        data class E(val daysAgo: Long, val amount: Long, val cat: String, val note: String, val income: Boolean = false, val onBank: Boolean = false)
+        val demo = listOf(
+            E(62, 6_500_000, "Salary", "Monthly salary", income = true, onBank = true),
+            E(55, 124_500, "Groceries", "Weekly groceries"),
+            E(54, 18_000, "Transport", "Metro card top-up"),
+            E(50, 54_000, "Food & Dining", "Dinner with friends"),
+            E(47, 89_000, "Utilities", "Electricity bill", onBank = true),
+            E(45, 215_000, "Shopping", "Sneakers"),
+            E(42, 50_000, "Entertainment", "Movie night"),
+            E(40, 21_000, "Transport", "Cab to office"),
+            E(35, 98_000, "Groceries", "Fruits and veggies"),
+            E(33, 65_000, "Health", "Pharmacy"),
+            E(30, 450_000, "Freelance", "Logo design", income = true, onBank = true),
+            E(28, 32_000, "Food & Dining", "Ramen place"),
+            E(25, 19_900, "Subscriptions", "Hotstar"),
+            E(22, 17_500, "Transport", "Auto rides"),
+            E(20, 189_900, "Shopping", "Headphones"),
+            E(18, 112_000, "Groceries", "Monthly stock-up"),
+            E(15, 76_000, "Food & Dining", "Birthday dinner"),
+            E(12, 85_000, "Utilities", "Water bill", onBank = true),
+            E(10, 150_000, "Education", "Udemy course"),
+            E(8, 16_000, "Transport", "Bus pass"),
+            E(6, 143_000, "Groceries", "Weekend run"),
+            E(5, 45_000, "Entertainment", "Concert ticket"),
+            E(3, 28_500, "Food & Dining", "Cafe with Sam"),
+            E(2, 19_000, "Transport", "Cab"),
+            E(1, 86_000, "Groceries", "Milk and eggs"),
+            E(0, 12_000, "Food & Dining", "Lunch"),
+        )
+        demo.forEach { e ->
+            txDao.insert(
+                TxEntity(
+                    amountMinor = e.amount,
+                    type = if (e.income) TxType.INCOME else TxType.EXPENSE,
+                    accountId = if (e.onBank) bankId else cash.id,
+                    categoryId = cat(e.cat),
+                    date = daysAgo(e.daysAgo),
+                    note = e.note,
+                ),
+            )
+        }
+        budgetDao.insert(
+            BudgetEntity(
+                name = "Monthly spending",
+                amountMinor = 30_000_00,
+                periodType = com.budgettracker.app.util.BudgetPeriodType.MONTHLY,
+            ),
+        )
+        goalDao.insert(
+            GoalEntity(
+                name = "New Phone",
+                emoji = "📱",
+                colorArgb = 0xFF3B82F6,
+                targetMinor = 45_000_00,
+                savedMinor = 12_500_00,
+                targetDate = daysAgo(-90),
+            ),
+        )
+        subscriptionDao.insert(
+            SubscriptionEntity(
+                name = "Netflix",
+                emoji = "📺",
+                amountMinor = 64_900,
+                accountId = bankId,
+                categoryId = cat("Subscriptions"),
+                cycle = Cycle.MONTHLY,
+                nextDue = now + 3 * 86_400_000L,
+            ),
+        )
+        subscriptionDao.insert(
+            SubscriptionEntity(
+                name = "Spotify",
+                emoji = "🎧",
+                amountMinor = 11_900,
+                accountId = bankId,
+                categoryId = cat("Subscriptions"),
+                cycle = Cycle.MONTHLY,
+                nextDue = now + 2 * 86_400_000L,
+            ),
+        )
+        debtDao.insert(
+            DebtEntity(
+                direction = DebtDirection.LENT,
+                personName = "Amit",
+                amountMinor = 50_000,
+                note = "Lunch money",
+                dueDate = now + 10 * 86_400_000L,
+            ),
+        )
+    }
+
     // ---------- Transactions ----------
 
     suspend fun txById(id: Long): TxEntity? = txDao.byId(id)

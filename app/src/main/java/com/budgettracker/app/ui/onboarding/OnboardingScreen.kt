@@ -67,12 +67,23 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
 
     fun complete(name: String, currency: String, themeMode: ThemeMode, accentArgb: Long) {
+        finishSetup(name, currency, themeMode, accentArgb, withDemoData = false)
+    }
+
+    fun completeWithDemo(name: String, currency: String, themeMode: ThemeMode, accentArgb: Long) {
+        finishSetup(name, currency, themeMode, accentArgb, withDemoData = true)
+    }
+
+    private fun finishSetup(name: String, currency: String, themeMode: ThemeMode, accentArgb: Long, withDemoData: Boolean) {
         viewModelScope.launch {
             prefsRepository.setDisplayName(name.trim())
             prefsRepository.setBaseCurrency(currency)
             prefsRepository.setThemeMode(themeMode)
             prefsRepository.setAccent(accentArgb)
             financeRepository.ensureDefaultData(currency)
+            if (withDemoData) {
+                financeRepository.seedDemoData(currency)
+            }
             prefsRepository.setOnboardingDone(true)
         }
     }
@@ -203,15 +214,27 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
                         Text(if (step == 0) "Next" else "Next")
                     }
                 } else {
-                    Button(onClick = {
-                        viewModel.complete(
-                            name = name,
-                            currency = currency,
-                            themeMode = themeMode,
-                            accentArgb = accent.toArgb().toLong() and 0xFFFFFFFFL,
-                        )
-                    }) {
-                        Text("Get started")
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Button(onClick = {
+                            viewModel.complete(
+                                name = name,
+                                currency = currency,
+                                themeMode = themeMode,
+                                accentArgb = accent.toArgb().toLong() and 0xFFFFFFFFL,
+                            )
+                        }) {
+                            Text("Get started")
+                        }
+                        TextButton(onClick = {
+                            viewModel.completeWithDemo(
+                                name = name,
+                                currency = currency,
+                                themeMode = themeMode,
+                                accentArgb = accent.toArgb().toLong() and 0xFFFFFFFFL,
+                            )
+                        }) {
+                            Text("Explore with sample data", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }

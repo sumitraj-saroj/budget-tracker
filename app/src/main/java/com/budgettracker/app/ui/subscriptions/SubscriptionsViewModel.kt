@@ -9,6 +9,7 @@ import com.budgettracker.app.data.db.CategoryEntity
 import com.budgettracker.app.data.db.Cycle
 import com.budgettracker.app.data.db.SubscriptionEntity
 import com.budgettracker.app.util.Currencies
+import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.convertMinor
 import com.budgettracker.app.util.parseAmountMinor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import javax.inject.Inject
 
 data class SubscriptionWithAccount(
@@ -32,6 +34,7 @@ data class SubsUiState(
     val activeCount: Int = 0,
     val accounts: List<AccountEntity> = emptyList(),
     val expenseCategories: List<CategoryEntity> = emptyList(),
+    val dueDaysOfMonth: Set<Int> = emptySet(),
 )
 
 @HiltViewModel
@@ -66,6 +69,12 @@ class SubscriptionsViewModel @Inject constructor(
             activeCount = subs.count { it.isActive },
             accounts = accounts.filter { !it.isArchived },
             expenseCategories = categories.filter { it.type == com.budgettracker.app.data.db.CategoryType.EXPENSE },
+            dueDaysOfMonth = withAccounts
+                .filter { it.sub.isActive }
+                .map { Fmt.toLocalDate(it.sub.nextDue) }
+                .filter { YearMonth.from(it) == YearMonth.now() }
+                .map { it.dayOfMonth }
+                .toSet(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SubsUiState())
 

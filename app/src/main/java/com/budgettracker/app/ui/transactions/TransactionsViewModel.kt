@@ -21,9 +21,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import javax.inject.Inject
 
 enum class TxSort { NEWEST, OLDEST, LARGEST, SMALLEST }
+
+enum class TxGrouping { DAY, CATEGORY, MONTH }
 
 data class TxFilter(
     val query: String = "",
@@ -38,9 +41,9 @@ data class TxFilter(
             categoryId != null || startDate != null || endDate != null
 }
 
-data class DayGroup(
+data class TxGroup(
+    val key: String,
     val label: String,
-    val dateMillis: Long,
     val incomeBase: Long,
     val expenseBase: Long,
     val items: List<TxDetailed>,
@@ -49,9 +52,10 @@ data class DayGroup(
 data class TxnsUiState(
     val loading: Boolean = true,
     val baseCurrency: String = "USD",
-    val groups: List<DayGroup> = emptyList(),
+    val groups: List<TxGroup> = emptyList(),
     val filter: TxFilter = TxFilter(),
     val sort: TxSort = TxSort.NEWEST,
+    val grouping: TxGrouping = TxGrouping.DAY,
     val accounts: List<AccountEntity> = emptyList(),
     val categories: List<CategoryEntity> = emptyList(),
     val totalCount: Int = 0,
@@ -69,6 +73,7 @@ class TransactionsViewModel @Inject constructor(
 
     private val filter = MutableStateFlow(TxFilter())
     private val sort = MutableStateFlow(TxSort.NEWEST)
+    private val grouping = MutableStateFlow(TxGrouping.DAY)
     private var lastDeleted: TxEntity? = null
 
     init {
@@ -99,11 +104,12 @@ class TransactionsViewModel @Inject constructor(
         rawData,
         filter,
         sort,
-    ) { raw, filter, sort ->
-        buildState(raw, filter, sort)
+        grouping,
+    ) { raw, filter, sort, grouping ->
+        buildState(raw, filter, sort, grouping)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TxnsUiState())
 
-    private fun buildState(raw: RawData, filter: TxFilter, sort: TxSort): TxnsUiState {
+    private fun buildState(raw: RawData, filter: TxFilter, sort: TxSort, grouping: TxGrouping): TxnsUiState {
         val accountById = raw.accounts.associateBy { it.id }
         val categoryById = raw.categories.associateBy { it.id }
 
@@ -130,18 +136,44 @@ class TransactionsViewModel @Inject constructor(
         }
 
         val list = filtered.toList()
-        val groups = list
-            .groupBy { Fmt.toLocalDate(it.tx.date) }
-            .toSortedMap(compareByDescending { it })
-            .map { (date, items) ->
-                DayGroup(
-                    label = Fmt.relativeDay(Fmt.fromLocalDate(date)),
-                    dateMillis = Fmt.fromLocalDate(date),
-                    incomeBase = items.filter { it.tx.type == TxType.INCOME }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
-                    expenseBase = items.filter { it.tx.type == TxType.EXPENSE }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
-                    items = items,
-                )
-            }
+        val groups: List<TxGroup> = when (grouping) {
+            TxGrouping.DAY -> list
+                .groupBy { Fmt.toLocalDate(it.tx.date) }
+                .toSortedMap(compareByDescending { it })
+                .map { (date, items) ->
+                    TxGroup(
+                        key = "day-$date",
+                        label = Fmt.relativeDay(Fmt.fromLocalDate(date)),
+                        incomeBase = items.filter { it.tx.type == TxType.INCOME }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        expenseBase = items.filter { it.tx.type == TxType.EXPENSE }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        items = items,
+                    )
+                }
+            TxGrouping.CATEGORY -> list
+                .groupBy { it.category?.name ?: "Uncategorized" }
+                .map { (name, items) ->
+                    TxGroup(
+                        key = "cat-$name",
+                        label = name,
+                        incomeBase = items.filter { it.tx.type == TxType.INCOME }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        expenseBase = items.filter { it.tx.type == TxType.EXPENSE }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        items = items.sortedByDescending { it.tx.date },
+                    )
+                }
+                .sortedByDescending { it.expenseBase }
+            TxGrouping.MONTH -> list
+                .groupBy { YearMonth.from(Fmt.toLocalDate(it.tx.date)) }
+                .toSortedMap(compareByDescending { it })
+                .map { (ym, items) ->
+                    TxGroup(
+                        key = "month-$ym",
+                        label = ym.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH) + " " + ym.year,
+                        incomeBase = items.filter { it.tx.type == TxType.INCOME }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        expenseBase = items.filter { it.tx.type == TxType.EXPENSE }.sumOf { Insights.txAmountInBase(it, raw.baseCurrency) },
+                        items = items,
+                    )
+                }
+        }
 
         return TxnsUiState(
             loading = false,
@@ -149,6 +181,7 @@ class TransactionsViewModel @Inject constructor(
             groups = groups,
             filter = filter,
             sort = sort,
+            grouping = grouping,
             accounts = raw.accounts,
             categories = raw.categories,
             totalCount = raw.txs.size,
@@ -180,6 +213,10 @@ class TransactionsViewModel @Inject constructor(
 
     fun setSort(newSort: TxSort) {
         sort.value = newSort
+    }
+
+    fun setGrouping(newGrouping: TxGrouping) {
+        grouping.value = newGrouping
     }
 
     fun clearFilters() {

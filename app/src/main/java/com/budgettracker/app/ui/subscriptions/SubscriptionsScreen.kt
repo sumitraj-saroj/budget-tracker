@@ -1,6 +1,8 @@
 package com.budgettracker.app.ui.subscriptions
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,6 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,18 +46,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.budgettracker.app.data.db.Cycle
 import com.budgettracker.app.data.db.SubscriptionEntity
@@ -140,6 +149,12 @@ fun SubscriptionsScreen(viewModel: SubscriptionsViewModel = androidx.hilt.naviga
                         }
                     }
                 }
+                item {
+                    DueDateStrip(
+                        dueDays = state.dueDaysOfMonth,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 items(state.subs, key = { it.sub.id }) { pair ->
                     SubCard(
                         pair = pair,
@@ -187,6 +202,57 @@ fun SubscriptionsScreen(viewModel: SubscriptionsViewModel = androidx.hilt.naviga
             },
             onDismiss = { deleting = null },
         )
+    }
+}
+
+/** Mini month strip: day numbers with dots on subscription due dates, auto-scrolled to today. */
+@Composable
+private fun DueDateStrip(dueDays: Set<Int>, modifier: Modifier = Modifier) {
+    val today = java.time.LocalDate.now().dayOfMonth
+    val daysInMonth = java.time.YearMonth.now().lengthOfMonth()
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(dueDays) {
+        listState.scrollToItem((today - 1).coerceIn(0, daysInMonth - 1))
+    }
+    androidx.compose.foundation.lazy.LazyRow(
+        state = listState,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items((1..daysInMonth).toList(), key = { it }) { day ->
+            val isDue = day in dueDays
+            val isToday = day == today
+            Column(
+                modifier = Modifier
+                    .size(width = 42.dp, height = 48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isToday) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "$day",
+                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                    fontWeight = if (isToday || isDue) FontWeight.Bold else FontWeight.Normal,
+                    color = when {
+                        isToday -> MaterialTheme.colorScheme.onSecondaryContainer
+                        isDue -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(
+                            color = if (isDue) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = CircleShape,
+                        ),
+                )
+            }
+        }
     }
 }
 

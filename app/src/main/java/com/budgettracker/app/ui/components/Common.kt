@@ -364,6 +364,28 @@ fun MiniCard(
     }
 }
 
+/** Highlights every occurrence of [query] in [text] with a tinted background. */
+fun annotatedWithMatch(text: String, query: String?, highlight: Color): androidx.compose.ui.text.AnnotatedString {
+    if (query.isNullOrBlank()) return androidx.compose.ui.text.AnnotatedString(text)
+    val builder = androidx.compose.ui.text.AnnotatedString.Builder()
+    val lowerText = text.lowercase()
+    val lowerQuery = query.lowercase()
+    var index = 0
+    while (index <= text.length) {
+        val found = lowerText.indexOf(lowerQuery, index)
+        if (found < 0) {
+            builder.append(text.substring(index))
+            break
+        }
+        if (found > index) builder.append(text.substring(index, found))
+        builder.pushStyle(androidx.compose.ui.text.SpanStyle(background = highlight))
+        builder.append(text.substring(found, (found + query.length).coerceAtMost(text.length)))
+        builder.pop()
+        index = found + query.length
+    }
+    return builder.toAnnotatedString()
+}
+
 /** Reusable transaction row used on Home and the Transactions list. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -372,6 +394,7 @@ fun TxListItem(
     modifier: Modifier = Modifier,
     showDate: Boolean = true,
     showAccount: Boolean = false,
+    highlight: String? = null,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -386,6 +409,7 @@ fun TxListItem(
         if (tx.type == TxType.TRANSFER) {
             add("${item.account?.name ?: "—"} → ${item.toAccount?.name ?: "—"}")
         } else {
+            if (item.category != null && title != item.category.name) add(item.category.name)
             if (showAccount) add(item.account?.name ?: "")
             if (showDate) add(Fmt.dateShort(tx.date))
         }
@@ -394,9 +418,8 @@ fun TxListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
@@ -406,10 +429,15 @@ fun TxListItem(
         }
         Spacer(Modifier.size(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                annotatedWithMatch(title, highlight, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (subtitle.isNotBlank()) {
                 Text(
-                    subtitle,
+                    annotatedWithMatch(subtitle, highlight, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

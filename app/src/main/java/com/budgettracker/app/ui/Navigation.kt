@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
@@ -47,8 +48,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.budgettracker.app.AppViewModel
 import com.budgettracker.app.util.hapticKey
 import com.budgettracker.app.util.hapticTick
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -103,11 +106,17 @@ private val topLevelDestinations = listOf(
 )
 
 @Composable
-fun MainNavHost() {
+fun MainNavHost(appViewModel: AppViewModel) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showChrome = currentRoute in topLevelDestinations.map { it.route }
+
+    // Backup badge on the More tab when there is data and the last backup is stale.
+    val txCount by appViewModel.txCount.collectAsStateWithLifecycle()
+    val prefs by appViewModel.prefs.collectAsStateWithLifecycle()
+    val backupStale = txCount > 15 &&
+        (prefs?.lastBackupAt == null || System.currentTimeMillis() - (prefs?.lastBackupAt ?: 0L) > 14L * 24 * 3600 * 1000)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -116,6 +125,7 @@ fun MainNavHost() {
                 FloatingBottomBar(
                     currentRoute = currentRoute,
                     destinations = topLevelDestinations,
+                    showBackupBadge = backupStale,
                     onSelect = { navController.navigateTopLevel(it) },
                 )
             }
@@ -298,6 +308,7 @@ private fun QuickAddFab(onQuickAdd: (String) -> Unit) {
 private fun FloatingBottomBar(
     currentRoute: String?,
     destinations: List<TopLevelDestination>,
+    showBackupBadge: Boolean,
     onSelect: (String) -> Unit,
 ) {
     Box(
@@ -366,6 +377,14 @@ private fun FloatingBottomBar(
                                 },
                                 modifier = Modifier.size(24.dp),
                             )
+                            if (destination.route == Routes.MORE && showBackupBadge) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .size(10.dp)
+                                        .background(MaterialTheme.colorScheme.error, CircleShape),
+                                )
+                            }
                         }
                     }
                 }
