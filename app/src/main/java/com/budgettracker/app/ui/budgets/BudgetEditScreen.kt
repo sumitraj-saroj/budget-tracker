@@ -160,6 +160,7 @@ fun BudgetEditScreen(
             }
 
             Card(
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 shape = MaterialTheme.shapes.large,
             ) {

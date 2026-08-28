@@ -98,7 +98,7 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                                 label = "Expenses",
                                 amountMinor = state.expense,
                                 currencyCode = state.baseCurrency,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.weight(1f),
                             )
                             SummaryColumn(
@@ -111,7 +111,7 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                             )
                         }
                         Text(
-                            "Avg ${formatMoney(state.dailyAverage, currency)}/day · ${state.txCount} transactions",
+                            "Avg ${formatMoney(state.dailyAverage, currency)}/day · ${state.txCount} transaction${if (state.txCount == 1) "" else "s"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 18.dp, bottom = 14.dp),
@@ -190,8 +190,8 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                         GroupedBarChart(
                             entries = state.bars,
                             incomeColor = IncomeGreen,
-                            expenseColor = MaterialTheme.colorScheme.primary,
-                            formatValue = { formatShort(it) },
+                            expenseColor = MaterialTheme.colorScheme.error,
+                            formatValue = { fmtShort(it, currency) },
                         )
                     }
                 }
@@ -205,7 +205,7 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                                 xLabels = state.trendLabels,
                                 color = MaterialTheme.colorScheme.primary,
                                 formatValue = { fraction ->
-                                    formatShort((state.expense * fraction).toLong())
+                                    fmtShort((state.expense * fraction).toLong(), currency)
                                 },
                             )
                         }
@@ -218,12 +218,16 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
     }
 }
 
-private fun formatShort(amountMinor: Long): String {
-    val abs = kotlin.math.abs(amountMinor)
+/** Abbreviate a MINOR-unit amount for chart axis labels, e.g. 25050 paise -> "₹250.5". */
+private fun fmtShort(amountMinor: Long, currency: com.budgettracker.app.util.CurrencyInfo): String {
+    val major = amountMinor / Math.pow(10.0, currency.minorDigits.toDouble())
+    val abs = kotlin.math.abs(major)
+    val sign = if (major < 0) "-" else ""
     return when {
-        abs >= 1_000_000 -> String.format("%.1fM", amountMinor / 1_000_000.0)
-        abs >= 1_000 -> String.format("%.1fk", amountMinor / 1_000.0)
-        else -> amountMinor.toString()
+        abs >= 1_000_000 -> String.format("%s%s%.1fM", sign, currency.symbol, abs / 1_000_000.0)
+        abs >= 1_000 -> String.format("%s%s%.1fk", sign, currency.symbol, abs / 1_000.0)
+        abs >= 100 -> String.format("%s%s%.0f", sign, currency.symbol, abs)
+        else -> String.format("%s%s%.1f", sign, currency.symbol, abs)
     }
 }
 

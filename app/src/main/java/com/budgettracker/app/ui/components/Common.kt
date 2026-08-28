@@ -22,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
@@ -152,7 +153,7 @@ fun EmptyState(
         )
         if (ctaLabel != null && onCta != null) {
             Spacer(Modifier.padding(top = 8.dp))
-            TextButton(onClick = onCta) { Text(ctaLabel) }
+            FilledTonalButton(onClick = onCta) { Text(ctaLabel) }
         }
     }
 }

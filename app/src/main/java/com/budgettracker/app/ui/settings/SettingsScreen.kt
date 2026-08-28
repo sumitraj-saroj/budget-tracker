@@ -50,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -211,12 +212,22 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Accent color", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                AccentGrid(
-                    selected = Color(prefs.accentArgb.toInt()),
-                    onSelect = { viewModel.setAccent(it.toArgb().toLong() and 0xFFFFFFFFL) },
-                    onCustom = { showCustomColor = true },
-                )
+                val accentActive = !prefs.useDynamicColor
+                Column(Modifier.alpha(if (accentActive) 1f else 0.35f)) {
+                    Text("Accent color", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    AccentGrid(
+                        selected = Color(prefs.accentArgb.toInt()),
+                        onSelect = { if (accentActive) viewModel.setAccent(it.toArgb().toLong() and 0xFFFFFFFFL) },
+                        onCustom = { if (accentActive) showCustomColor = true },
+                    )
+                }
+                if (!accentActive) {
+                    Text(
+                        "Dynamic color is on — the wallpaper drives app colors.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             // ---- Preferences ----

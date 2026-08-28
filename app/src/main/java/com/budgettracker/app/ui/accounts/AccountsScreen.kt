@@ -124,6 +124,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = androidx.hilt.navigation.compo
                 ) {
                     item {
                         Card(
+                            modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         ) {
