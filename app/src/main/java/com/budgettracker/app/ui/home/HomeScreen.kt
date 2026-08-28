@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.budgettracker.app.data.db.GoalEntity
 import com.budgettracker.app.domain.BudgetProgress
 import com.budgettracker.app.ui.components.AmountText
+import com.budgettracker.app.ui.components.BudgetProgressBar
 import com.budgettracker.app.ui.components.EmojiBadge
 import com.budgettracker.app.ui.components.IncomeGreen
 import com.budgettracker.app.ui.components.TxListItem
@@ -130,6 +131,11 @@ fun HomeScreen(
 
 private fun isBackupStale(lastBackupAt: Long?): Boolean =
     lastBackupAt == null || System.currentTimeMillis() - lastBackupAt > 14L * 24 * 3600 * 1000
+
+/** How far through the current budget period we are (0..1). */
+private fun budgetPace(progress: BudgetProgress): Float =
+    ((System.currentTimeMillis() - progress.window.startMillis).toFloat() /
+        (progress.window.endMillis - progress.window.startMillis)).coerceIn(0f, 1f)
 
 // ---------- Header ----------
 
@@ -382,14 +388,11 @@ private fun BudgetCard(progress: BudgetProgress, currencyCode: String, onClick: 
                 )
             }
             Spacer(Modifier.height(10.dp))
-            LinearProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp),
+            BudgetProgressBar(
+                progress = fraction,
+                pace = budgetPace(progress),
                 color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                strokeCap = StrokeCap.Round,
             )
             Spacer(Modifier.height(8.dp))
             Row {

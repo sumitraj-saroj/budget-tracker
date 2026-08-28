@@ -124,6 +124,28 @@ class TransactionEditViewModel @Inject constructor(
         _state.update { it.copy(amountText = text.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(12), amountError = false) }
     }
 
+    /** Handles the custom keypad: digits, decimal separator, "BACK". */
+    fun onKeypad(key: String) {
+        _state.update { s ->
+            val maxFrac = s.currency.minorDigits
+            var t = s.amountText
+            when {
+                key == "BACK" -> t = t.dropLast(1)
+                key == "." -> if (maxFrac > 0 && !t.contains('.')) {
+                    t = if (t.isEmpty()) "0." else "$t."
+                }
+                else -> {
+                    if (t == "0") t = ""
+                    val dot = t.indexOf('.')
+                    val fracLen = if (dot >= 0) t.length - dot - 1 else 0
+                    val wholeLen = if (dot >= 0) dot else t.length
+                    if (wholeLen < 12 && fracLen < maxFrac) t += key
+                }
+            }
+            s.copy(amountText = t, amountError = false)
+        }
+    }
+
     fun setCategory(categoryId: Long?) {
         _state.update { it.copy(categoryId = categoryId) }
     }

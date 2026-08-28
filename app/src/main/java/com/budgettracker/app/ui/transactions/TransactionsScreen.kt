@@ -79,7 +79,7 @@ import com.budgettracker.app.util.Periods
 import com.budgettracker.app.util.formatMoney
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TransactionsScreen(
     onTxClick: (Long) -> Unit,
@@ -283,8 +283,15 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     state.groups.forEach { group ->
-                        item(key = "header-${group.dateMillis}") {
-                            DayHeader(group, baseCurrencyCode = state.baseCurrency)
+                        stickyHeader(key = "header-${group.dateMillis}") {
+                            DayHeader(
+                                group = group,
+                                baseCurrencyCode = state.baseCurrency,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.background)
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                            )
                         }
                         items(group.items, key = { "tx-${it.tx.id}" }) { item ->
                             SwipeDeleteBox(
@@ -370,11 +377,9 @@ fun TransactionsScreen(
 }
 
 @Composable
-private fun DayHeader(group: DayGroup, baseCurrencyCode: String) {
+private fun DayHeader(group: DayGroup, baseCurrencyCode: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(group.label, style = MaterialTheme.typography.titleSmall)

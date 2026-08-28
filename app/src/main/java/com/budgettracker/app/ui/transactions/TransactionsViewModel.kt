@@ -1,5 +1,6 @@
 package com.budgettracker.app.ui.transactions
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgettracker.app.data.FinanceRepository
@@ -63,11 +64,20 @@ data class TxnsUiState(
 class TransactionsViewModel @Inject constructor(
     private val repo: FinanceRepository,
     prefsRepository: PrefsRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val filter = MutableStateFlow(TxFilter())
     private val sort = MutableStateFlow(TxSort.NEWEST)
     private var lastDeleted: TxEntity? = null
+
+    init {
+        // Pre-filter when opened as a category drill-down (e.g. from Stats).
+        val categoryId = savedStateHandle.get<Long>("categoryId") ?: -1L
+        if (categoryId > 0) {
+            filter.value = filter.value.copy(categoryId = categoryId)
+        }
+    }
 
     private data class RawData(
         val txs: List<TxDetailed>,

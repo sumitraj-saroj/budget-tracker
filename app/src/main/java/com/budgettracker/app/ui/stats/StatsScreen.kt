@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,7 +44,10 @@ import com.budgettracker.app.util.formatMoney
 import kotlin.math.roundToInt
 
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hiltViewModel()) {
+fun StatsScreen(
+    onOpenCategory: (Long) -> Unit = {},
+    viewModel: StatsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currency = Currencies.byCode(state.baseCurrency)
 
@@ -114,8 +119,31 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                             "Avg ${formatMoney(state.dailyAverage, currency)}/day · ${state.txCount} transaction${if (state.txCount == 1) "" else "s"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 18.dp, bottom = 14.dp),
+                            modifier = Modifier.padding(start = 18.dp),
                         )
+                        val pct = state.expenseChangePct
+                        if (pct != null) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.padding(start = 18.dp, bottom = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = if (pct > 0f) Icons.Rounded.ArrowUpward else Icons.Rounded.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = if (pct > 0f) MaterialTheme.colorScheme.error else IncomeGreen,
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Spacer(Modifier.size(4.dp))
+                                Text(
+                                    "${kotlin.math.abs(pct).roundToInt()}% ${comparisonLabel(state.period)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (pct > 0f) MaterialTheme.colorScheme.error else IncomeGreen,
+                                )
+                            }
+                        } else {
+                            Spacer(Modifier.height(14.dp))
+                        }
                     }
                 }
 
@@ -131,6 +159,11 @@ fun StatsScreen(viewModel: StatsViewModel = androidx.hilt.navigation.compose.hil
                                     modifier = Modifier.size(190.dp),
                                     strokeWidth = 26.dp,
                                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    onSliceClick = { index ->
+                                        state.slices.getOrNull(index)?.category?.let { category ->
+                                            onOpenCategory(category.id)
+                                        }
+                                    },
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
@@ -229,6 +262,14 @@ private fun fmtShort(amountMinor: Long, currency: com.budgettracker.app.util.Cur
         abs >= 100 -> String.format("%s%s%.0f", sign, currency.symbol, abs)
         else -> String.format("%s%s%.1f", sign, currency.symbol, abs)
     }
+}
+
+private fun comparisonLabel(period: StatsPeriod): String = when (period) {
+    StatsPeriod.THIS_MONTH -> "spending vs last month"
+    StatsPeriod.THREE_MONTHS -> "spending vs previous 3 months"
+    StatsPeriod.SIX_MONTHS -> "spending vs previous 6 months"
+    StatsPeriod.YEAR -> "spending vs last year"
+    StatsPeriod.ALL -> ""
 }
 
 @Composable

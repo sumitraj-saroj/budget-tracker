@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,18 +24,21 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.atan2
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
 /**
  * An animated donut chart. [fractions] holds colors with values normalized so
- * they sum to 1.0.
+ * they sum to 1.0. [onSliceClick] reports the tapped slice index.
  */
 @Composable
 fun DonutChart(
@@ -43,6 +47,7 @@ fun DonutChart(
     strokeWidth: Dp = 24.dp,
     gapAngle: Float = 3f,
     trackColor: Color = Color.Transparent,
+    onSliceClick: ((Int) -> Unit)? = null,
     centerContent: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     val animation = remember { Animatable(0f) }
@@ -51,7 +56,45 @@ fun DonutChart(
         animation.animateTo(1f, tween(750, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)))
     }
     Box(modifier = modifier, contentAlignment = androidx.compose.ui.Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .then(
+                    if (onSliceClick != null) {
+                        Modifier.pointerInput(fractions, strokeWidth, gapAngle) {
+                            detectTapGestures { pos ->
+                                val stroke = strokeWidth.toPx()
+                                val diameter = min(size.width, size.height) - stroke
+                                if (diameter <= 0f) return@detectTapGestures
+                                val cx = size.width / 2f
+                                val cy = size.height / 2f
+                                val radius = diameter / 2f
+                                val dist = hypot(pos.x - cx, pos.y - cy)
+                                if (dist < radius - stroke / 2f || dist > radius + stroke / 2f) {
+                                    return@detectTapGestures
+                                }
+                                var angle = Math.toDegrees(
+                                    atan2((pos.y - cy).toDouble(), (pos.x - cx).toDouble()),
+                                ).toFloat() + 90f
+                                angle = (angle % 360f + 360f) % 360f
+                                val totalGap = gapAngle * fractions.size
+                                val available = (360f - totalGap).coerceAtLeast(1f)
+                                var sliceStart = 0f
+                                fractions.forEachIndexed { index, (_, fraction) ->
+                                    val span = fraction * available
+                                    if (angle >= sliceStart && angle < sliceStart + span) {
+                                        onSliceClick.invoke(index)
+                                        return@detectTapGestures
+                                    }
+                                    sliceStart += span
+                                }
+                            }
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
             val stroke = strokeWidth.toPx()
             val diameter = min(size.width, size.height) - stroke
             if (diameter <= 0f) return@Canvas

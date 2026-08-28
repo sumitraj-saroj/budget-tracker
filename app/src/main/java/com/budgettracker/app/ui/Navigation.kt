@@ -65,7 +65,8 @@ import com.budgettracker.app.ui.transactions.TransactionsScreen
 
 object Routes {
     const val HOME = "home"
-    const val TXNS = "transactions"
+    const val TXNS = "transactions?categoryId={categoryId}"
+    const val TXNS_PLAIN = "transactions"
     const val STATS = "stats"
     const val BUDGETS = "budgets"
     const val MORE = "more"
@@ -135,20 +136,32 @@ fun MainNavHost() {
                     onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
                     onAddTx = { navController.navigate(Routes.txEdit(-1)) },
                     onOpenBudgets = { navController.navigateTopLevel(Routes.BUDGETS) },
-                    onOpenTransactions = { navController.navigateTopLevel(Routes.TXNS) },
+                    onOpenTransactions = { navController.navigateTopLevel(Routes.TXNS_PLAIN) },
                     onOpenSubscriptions = { navController.navigate(Routes.SUBSCRIPTIONS) },
                     onOpenGoals = { navController.navigate(Routes.GOALS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.TXNS) {
+            composable(
+                route = Routes.TXNS,
+                arguments = listOf(
+                    androidx.navigation.navArgument("categoryId") {
+                        type = androidx.navigation.NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
+            ) {
                 TransactionsScreen(
                     onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
                     onAddTx = { navController.navigate(Routes.txEdit(-1)) },
                 )
             }
             composable(Routes.STATS) {
-                StatsScreen()
+                StatsScreen(
+                    onOpenCategory = { categoryId ->
+                        navController.navigate("${Routes.TXNS_PLAIN}?categoryId=$categoryId")
+                    },
+                )
             }
             composable(Routes.BUDGETS) {
                 BudgetsScreen(

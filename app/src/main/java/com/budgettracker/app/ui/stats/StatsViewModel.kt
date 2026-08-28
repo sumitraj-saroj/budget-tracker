@@ -42,6 +42,7 @@ data class StatsUiState(
     val trend: List<Float> = emptyList(),
     val trendLabels: List<String> = emptyList(),
     val dailyAverage: Long = 0,
+    val expenseChangePct: Float? = null,
 )
 
 @HiltViewModel
@@ -76,6 +77,33 @@ class StatsViewModel @Inject constructor(
         val inWindow = txs.filter { it.tx.date >= window.startMillis && it.tx.date < window.endMillis }
         val income = Insights.sumBetween(txs, TxType.INCOME, window, base)
         val expense = Insights.sumBetween(txs, TxType.EXPENSE, window, base)
+
+        // Previous-period comparison for expenses
+        val prevWindow: DateWindow? = when (selected) {
+            StatsPeriod.THIS_MONTH -> {
+                val ym = YearMonth.now().minusMonths(1)
+                DateWindow(Fmt.fromLocalDate(ym.atDay(1)), Fmt.fromLocalDate(ym.plusMonths(1).atDay(1)))
+            }
+            StatsPeriod.THREE_MONTHS -> window.copy(
+                startMillis = window.startMillis - 90L * 86_400_000,
+                endMillis = window.endMillis - 90L * 86_400_000,
+            )
+            StatsPeriod.SIX_MONTHS -> window.copy(
+                startMillis = window.startMillis - 180L * 86_400_000,
+                endMillis = window.endMillis - 180L * 86_400_000,
+            )
+            StatsPeriod.YEAR -> window.copy(
+                startMillis = window.startMillis - 365L * 86_400_000,
+                endMillis = window.endMillis - 365L * 86_400_000,
+            )
+            StatsPeriod.ALL -> null
+        }
+        val prevExpense = prevWindow?.let { Insights.sumBetween(txs, TxType.EXPENSE, it, base) }
+        val expenseChangePct: Float? = when {
+            prevWindow == null || prevExpense == null -> null
+            prevExpense <= 0L || expense <= 0L -> null
+            else -> ((expense - prevExpense).toFloat() / prevExpense) * 100f
+        }
 
         // Category slices: top 5 + Other
         val breakdown = Insights.categoryBreakdown(txs, window, base)
@@ -184,6 +212,7 @@ class StatsViewModel @Inject constructor(
             trend = trend,
             trendLabels = trendLabels,
             dailyAverage = expense / daysElapsed,
+            expenseChangePct = expenseChangePct,
         )
     }
 }

@@ -31,12 +31,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.budgettracker.app.domain.BudgetProgress
 import com.budgettracker.app.domain.Insights
 import com.budgettracker.app.ui.components.AmountText
+import com.budgettracker.app.ui.components.BudgetProgressBar
 import com.budgettracker.app.ui.components.EmptyState
 import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.Periods
 import com.budgettracker.app.util.formatMoney
 import kotlin.math.roundToInt
+
+private fun budgetPace(progress: BudgetProgress): Float =
+    ((System.currentTimeMillis() - progress.window.startMillis).toFloat() /
+        (progress.window.endMillis - progress.window.startMillis)).coerceIn(0f, 1f)
 
 @Composable
 fun BudgetsScreen(
@@ -116,11 +121,9 @@ private fun BudgetCardFull(progress: BudgetProgress, currencyCode: String, onCli
                 )
             }
             Spacer(Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
+            BudgetProgressBar(
+                progress = fraction,
+                pace = budgetPace(progress),
                 color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
