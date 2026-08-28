@@ -36,6 +36,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -191,6 +192,7 @@ fun DebtsScreen(viewModel: DebtsViewModel = androidx.hilt.navigation.compose.hil
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DebtCard(
     debt: DebtEntity,
@@ -274,6 +276,7 @@ private fun DebtCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DebtEditDialog(
     debt: DebtEntity?,

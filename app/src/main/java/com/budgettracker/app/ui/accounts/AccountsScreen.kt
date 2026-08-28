@@ -217,6 +217,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = androidx.hilt.navigation.compo
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AccountRow(item: AccountWithBalance, baseCurrencyCode: String, onClick: () -> Unit) {
     val account = item.account

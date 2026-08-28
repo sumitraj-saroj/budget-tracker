@@ -1,0 +1,1 @@
+-keep,allowobfuscation,allowshrinking class com.budgettracker.app.ui.transactions.TransactionEditViewModel

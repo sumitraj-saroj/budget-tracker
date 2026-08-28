@@ -85,6 +85,7 @@ fun BudgetsScreen(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun BudgetCardFull(progress: BudgetProgress, currencyCode: String, onClick: () -> Unit) {
     val fraction = if (progress.budget.amountMinor <= 0) 0f else (progress.spentMinor.toFloat() / progress.budget.amountMinor).coerceIn(0f, 1f)

@@ -20,6 +20,7 @@ import com.budgettracker.app.data.db.TxDao
 import com.budgettracker.app.data.db.TxEntity
 import com.budgettracker.app.data.db.TxType
 import com.budgettracker.app.util.Fmt
+import com.budgettracker.app.util.Periods
 import com.budgettracker.app.util.convertMinor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -183,6 +184,8 @@ class FinanceRepository @Inject constructor(
     suspend fun accountById(id: Long): AccountEntity? = accountDao.byId(id)
 
     // ---------- Budgets ----------
+
+    suspend fun budgetById(id: Long): BudgetEntity? = budgetDao.byId(id)
 
     suspend fun saveBudget(budget: BudgetEntity) {
         if (budget.id == 0L) budgetDao.insert(budget) else budgetDao.update(budget)

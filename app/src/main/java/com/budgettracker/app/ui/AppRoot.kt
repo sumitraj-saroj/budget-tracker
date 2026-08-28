@@ -1,13 +1,18 @@
 package com.budgettracker.app.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.budgettracker.app.AppViewModel
+import com.budgettracker.app.ui.onboarding.OnboardingScreen
 
 @Composable
 fun AppRoot(appViewModel: AppViewModel) {
@@ -27,18 +32,17 @@ fun AppRoot(appViewModel: AppViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    androidx.compose.animation.AnimatedContent(
+    AnimatedContent(
         targetState = when {
             !prefs.onboardingDone -> 0
             locked -> 1
             else -> 2
         },
-        transitionSpec = { androidx.compose.animation.fadeIn() togetherWith androidx.compose.animation.fadeOut() },
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
         label = "root",
-        modifier = Modifier,
     ) { state ->
         when (state) {
-            0 -> com.budgettracker.app.ui.onboarding.OnboardingScreen()
+            0 -> OnboardingScreen()
             1 -> LockScreen(onUnlock = appViewModel::unlock)
             else -> MainNavHost()
         }

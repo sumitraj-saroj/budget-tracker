@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.budgettracker.app.ui.theme.ThemeMode
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -32,7 +33,7 @@ data class UserPrefs(
 
 @Singleton
 class PrefsRepository @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
 ) {
     private object Keys {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")

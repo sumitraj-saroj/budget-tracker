@@ -153,6 +153,7 @@ fun GoalsScreen(viewModel: GoalsViewModel = androidx.hilt.navigation.compose.hil
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GoalCard(
     goal: GoalEntity,
@@ -228,6 +229,7 @@ private fun GoalCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GoalEditDialog(
     goal: GoalEntity?,

@@ -61,6 +61,7 @@ class BackupManager @Inject constructor(
                 out.write(json.encodeToString(BackupData.serializer(), backup).toByteArray(Charsets.UTF_8))
             } ?: error("Could not open file for writing")
             prefsRepository.setLastBackupAt(System.currentTimeMillis())
+            Unit
         }
     }
 

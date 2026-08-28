@@ -77,6 +77,7 @@ class OnboardingViewModel @Inject constructor(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
     var step by remember { mutableIntStateOf(0) }

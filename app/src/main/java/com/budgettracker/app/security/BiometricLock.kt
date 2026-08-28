@@ -16,9 +16,7 @@ object BiometricLock {
         return when (manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
             BiometricManager.BIOMETRIC_SUCCESS -> BiometricAvailability.AVAILABLE
             BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BiometricAvailability.NONE_ENROLLED
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE, BiometricManager.BIOMETRIC_ERROR_HW_NOT_PRESENT ->
-                BiometricAvailability.NO_HARDWARE
-            else -> BiometricAvailability.UNAVAILABLE
+            else -> BiometricAvailability.NO_HARDWARE
         }
     }
 
@@ -49,12 +47,22 @@ object BiometricLock {
             }
         }
         val prompt = BiometricPrompt(activity, executor, callback)
-        val info = BiometricPrompt.PromptInfo.Builder()
+        val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-            .setDeviceCredentialAllowed(true)
-            .build()
+        val info = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            builder
+                .setAllowedAuthenticators(
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                        BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+                )
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            builder
+                .setDeviceCredentialAllowed(true)
+                .build()
+        }
         prompt.authenticate(info)
     }
 }

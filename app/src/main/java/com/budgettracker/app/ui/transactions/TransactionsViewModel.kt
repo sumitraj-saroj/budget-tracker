@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -79,7 +80,7 @@ class TransactionsViewModel @Inject constructor(
         repo.transactionsDetailed(),
         repo.accounts,
         repo.categories,
-        prefsRepository.baseCurrency,
+        prefsRepository.prefs.map { it.baseCurrency },
     ) { txs, accounts, categories, base ->
         RawData(txs, accounts, categories, base)
     }

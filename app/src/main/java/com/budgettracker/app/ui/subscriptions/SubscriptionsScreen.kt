@@ -310,6 +310,7 @@ private fun BoxMenu(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubEditDialog(
     existing: SubscriptionEntity?,

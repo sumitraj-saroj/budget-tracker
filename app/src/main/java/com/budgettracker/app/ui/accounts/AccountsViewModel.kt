@@ -61,7 +61,10 @@ class AccountsViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val currency = Currencies.byCode(currencyCode)
-            val starting = com.budgettracker.app.util.parseAmountMinor(startingBalanceText, currency) ?: 0L
+            val trimmed = startingBalanceText.trim()
+            val negative = trimmed.startsWith("-")
+            val magnitude = com.budgettracker.app.util.parseAmountMinor(trimmed.removePrefix("-"), currency) ?: 0L
+            val starting = if (negative) -magnitude else magnitude
             val result = repo.saveAccount(
                 AccountEntity(
                     id = id,

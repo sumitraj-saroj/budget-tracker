@@ -1,0 +1,55 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.budgettracker.app-mergeDebugResources-71:/values-night-v8/values-night-v8.xml",
+            "map": [
+                {
+                    "source": "/home/sumit/.gradle/caches/9.1.0/transforms/2a9ee9664a88d07c8bc1447e70761b32/transformed/appcompat-1.7.0/res/values-night-v8/values-night-v8.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,125,209,293,389,491,593,687",
+                        "endColumns": "69,83,83,95,101,101,93,88",
+                        "endOffsets": "120,204,288,384,486,588,682,771"
+                    },
+                    "to": {
+                        "startLines": "3,4,5,6,7,8,9,16",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "104,174,258,342,438,540,642,1132",
+                        "endColumns": "69,83,83,95,101,101,93,88",
+                        "endOffsets": "169,253,337,433,535,637,731,1216"
+                    }
+                },
+                {
+                    "source": "/home/sumit/Github/budget-tracker/app/src/main/res/values-night/colors.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "48",
+                        "endOffsets": "99"
+                    }
+                },
+                {
+                    "source": "/home/sumit/Github/budget-tracker/app/src/main/res/values-night/themes.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "7",
+                        "endColumns": "12",
+                        "endOffsets": "446"
+                    },
+                    "to": {
+                        "startLines": "10",
+                        "startColumns": "4",
+                        "startOffsets": "736",
+                        "endLines": "15",
+                        "endColumns": "12",
+                        "endOffsets": "1127"
+                    }
+                }
+            ]
+        }
+    ]
+}
