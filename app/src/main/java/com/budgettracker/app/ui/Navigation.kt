@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.budgettracker.app.AppViewModel
 import com.budgettracker.app.ui.theme.LocalHazeState
 import com.budgettracker.app.ui.theme.glassBorder
@@ -118,6 +120,18 @@ fun MainNavHost(appViewModel: AppViewModel) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showChrome = currentRoute in topLevelDestinations.map { it.route }
+
+    // External quick-add requests (home-screen widget) are consumed once and
+    // navigated to; a stale request can't fire twice.
+    val quickAddRequest by appViewModel.quickAddRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(quickAddRequest) {
+        quickAddRequest?.let { type ->
+            val txType = com.budgettracker.app.data.db.TxType.entries
+                .firstOrNull { it.name.equals(type, ignoreCase = true) } ?: com.budgettracker.app.data.db.TxType.EXPENSE
+            navController.navigate("txedit/-1?type=$txType")
+            appViewModel.consumeQuickAdd()
+        }
+    }
 
     // Backdrop for the liquid-glass floating chrome. The scrolling content is
     // the haze source; the bottom bar and FAB draw a blurred effect over it.

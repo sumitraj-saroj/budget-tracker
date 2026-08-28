@@ -80,6 +80,17 @@ object Insights {
         return (progress.remainingMinor / progress.daysLeft).coerceAtLeast(0)
     }
 
+    /**
+     * Safe-to-spend per day: leftover budget across all budgets divided by the
+     * largest days-left. Shared by Home and the home-screen widget.
+     */
+    fun safeToSpendPerDay(progresses: List<BudgetProgress>): Long? {
+        if (progresses.isEmpty()) return null
+        val remaining = progresses.sumOf { it.remainingMinor.coerceAtLeast(0L) }
+        val daysLeft = progresses.maxOf { it.daysLeft }.coerceAtLeast(1)
+        return remaining / daysLeft
+    }
+
     fun categoryBreakdown(txs: List<TxDetailed>, window: DateWindow, baseCode: String): List<CategorySlice> {
         val sums = LinkedHashMap<Long, Long>()
         var uncategorized = 0L

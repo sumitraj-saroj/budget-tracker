@@ -93,13 +93,7 @@ class HomeViewModel @Inject constructor(
             .mapNotNull { entry -> core.txs.firstOrNull { it.tx.categoryId == entry.key }?.category }
 
         // Safe-to-spend per day: leftover budget across all budgets / days left.
-        val dailyAllowance = if (budgetProgress.isEmpty()) {
-            null
-        } else {
-            val remaining = budgetProgress.sumOf { it.remainingMinor.coerceAtLeast(0L) }
-            val daysLeft = budgetProgress.maxOf { it.daysLeft }.coerceAtLeast(1)
-            remaining / daysLeft
-        }
+        val dailyAllowance = Insights.safeToSpendPerDay(budgetProgress)
 
         return HomeUiState(
             loading = false,

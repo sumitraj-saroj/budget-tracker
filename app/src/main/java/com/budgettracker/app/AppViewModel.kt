@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -32,7 +33,19 @@ class AppViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _locked = MutableStateFlow(false)
-    val locked: StateFlow<Boolean> = _locked
+    val locked: StateFlow<Boolean> = _locked.asStateFlow()
+
+    /** Route request from external entry points (e.g. the home-screen widget). */
+    private val _quickAddRequest = MutableStateFlow<String?>(null)
+    val quickAddRequest: StateFlow<String?> = _quickAddRequest.asStateFlow()
+
+    fun requestQuickAdd(type: String) {
+        _quickAddRequest.value = type
+    }
+
+    fun consumeQuickAdd() {
+        _quickAddRequest.value = null
+    }
 
     /** Used for the backup badge on the nav bar. */
     val txCount: StateFlow<Int> = financeRepository.transactions
