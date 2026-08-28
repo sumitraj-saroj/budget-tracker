@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
                 accent = Color(p.accentArgb.toInt()),
                 useDynamicColor = p.useDynamicColor,
                 amoledBlack = p.amoledBlack,
+                liquidGlass = p.liquidGlass,
             ) {
                 AppRoot(appViewModel = appViewModel)
             }

@@ -25,6 +25,7 @@ data class UserPrefs(
     val accentArgb: Long = 0xFF10B981,
     val useDynamicColor: Boolean = false,
     val amoledBlack: Boolean = false,
+    val liquidGlass: Boolean = false,
     val biometricLock: Boolean = false,
     val googleEmail: String? = null,
     val googleName: String? = null,
@@ -44,6 +45,7 @@ class PrefsRepository @Inject constructor(
         val ACCENT = longPreferencesKey("accent_argb")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val AMOLED_BLACK = booleanPreferencesKey("amoled_black")
+        val LIQUID_GLASS = booleanPreferencesKey("liquid_glass")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock")
         val GOOGLE_EMAIL = stringPreferencesKey("google_email")
         val GOOGLE_NAME = stringPreferencesKey("google_name")
@@ -60,6 +62,7 @@ class PrefsRepository @Inject constructor(
             accentArgb = p[Keys.ACCENT] ?: 0xFF10B981,
             useDynamicColor = p[Keys.DYNAMIC_COLOR] ?: false,
             amoledBlack = p[Keys.AMOLED_BLACK] ?: false,
+            liquidGlass = p[Keys.LIQUID_GLASS] ?: false,
             biometricLock = p[Keys.BIOMETRIC_LOCK] ?: false,
             googleEmail = p[Keys.GOOGLE_EMAIL],
             googleName = p[Keys.GOOGLE_NAME],
@@ -81,6 +84,8 @@ class PrefsRepository @Inject constructor(
     suspend fun setDynamicColor(enabled: Boolean) = context.dataStore.edit { it[Keys.DYNAMIC_COLOR] = enabled }
 
     suspend fun setAmoledBlack(enabled: Boolean) = context.dataStore.edit { it[Keys.AMOLED_BLACK] = enabled }
+
+    suspend fun setLiquidGlass(enabled: Boolean) = context.dataStore.edit { it[Keys.LIQUID_GLASS] = enabled }
 
     suspend fun setBiometricLock(enabled: Boolean) = context.dataStore.edit { it[Keys.BIOMETRIC_LOCK] = enabled }
 
@@ -104,6 +109,7 @@ class PrefsRepository @Inject constructor(
         accentArgb: Long,
         dynamicColor: Boolean,
         amoledBlack: Boolean = false,
+        liquidGlass: Boolean = false,
     ) {
         context.dataStore.edit {
             it[Keys.DISPLAY_NAME] = displayName
@@ -112,6 +118,7 @@ class PrefsRepository @Inject constructor(
             it[Keys.ACCENT] = accentArgb
             it[Keys.DYNAMIC_COLOR] = dynamicColor
             it[Keys.AMOLED_BLACK] = amoledBlack
+            it[Keys.LIQUID_GLASS] = liquidGlass
         }
     }
 }

@@ -28,6 +28,7 @@ data class PrefsSnapshot(
     val accentArgb: Long = 0xFF10B981,
     val useDynamicColor: Boolean = false,
     val amoledBlack: Boolean = false,
+    val liquidGlass: Boolean = false,
 )
 
 @Serializable
@@ -95,6 +96,7 @@ class BackupManager @Inject constructor(
                 accentArgb = prefs.accentArgb,
                 useDynamicColor = prefs.useDynamicColor,
                 amoledBlack = prefs.amoledBlack,
+                liquidGlass = prefs.liquidGlass,
             ),
         )
     }
@@ -123,6 +125,7 @@ class BackupManager @Inject constructor(
             accentArgb = backup.prefs.accentArgb,
             dynamicColor = backup.prefs.useDynamicColor,
             amoledBlack = backup.prefs.amoledBlack,
+            liquidGlass = backup.prefs.liquidGlass,
         )
     }
 

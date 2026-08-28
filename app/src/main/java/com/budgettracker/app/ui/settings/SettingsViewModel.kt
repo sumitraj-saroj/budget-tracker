@@ -69,6 +69,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { prefsRepository.setAmoledBlack(enabled) }
     }
 
+    fun setLiquidGlass(enabled: Boolean) {
+        viewModelScope.launch { prefsRepository.setLiquidGlass(enabled) }
+    }
+
     fun setBiometricLock(enabled: Boolean) {
         viewModelScope.launch { prefsRepository.setBiometricLock(enabled) }
     }

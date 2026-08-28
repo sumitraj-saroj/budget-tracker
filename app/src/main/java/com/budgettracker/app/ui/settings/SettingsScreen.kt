@@ -226,6 +226,21 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
                         onCheckedChange = { viewModel.setAmoledBlack(it) },
                     )
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Liquid glass", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Translucent blur on floating bars and headers (Android 12+)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = prefs.liquidGlass,
+                        onCheckedChange = { viewModel.setLiquidGlass(it) },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 val accentActive = !prefs.useDynamicColor
                 Column(Modifier.alpha(if (accentActive) 1f else 0.35f)) {

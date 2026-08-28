@@ -73,10 +73,16 @@ import com.budgettracker.app.ui.components.EmptyState
 import com.budgettracker.app.ui.components.IncomeGreen
 import com.budgettracker.app.ui.components.SwipeDeleteBox
 import com.budgettracker.app.ui.components.TxListItem
+import com.budgettracker.app.ui.theme.LocalHazeState
+import com.budgettracker.app.ui.theme.glassBorder
+import com.budgettracker.app.ui.theme.glassEffect
+import com.budgettracker.app.ui.theme.rememberGlassEnabled
+import com.budgettracker.app.ui.theme.rememberGlassStyle
 import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.Periods
 import com.budgettracker.app.util.formatMoney
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -93,13 +99,20 @@ fun TransactionsScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var menuForTx by remember { mutableStateOf<TxDetailed?>(null) }
 
+    // Liquid glass: sticky day headers blur the transaction rows scrolling
+    // beneath them; rows act as haze sources for both the headers and the
+    // floating chrome. On < Android 12 / battery saver this is all inert.
+    val glassEnabled = rememberGlassEnabled()
+    val hazeState = LocalHazeState.current
+    val glassHeaderStyle = rememberGlassStyle(backgroundColor = MaterialTheme.colorScheme.background)
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.padding(bottom = 92.dp),
+                modifier = Modifier.padding(bottom = 100.dp),
             )
         },
     ) { padding ->
@@ -307,13 +320,28 @@ fun TransactionsScreen(
                                 highlight = state.filter.query.takeIf { it.isNotBlank() },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background)
+                                    .then(
+                                        if (glassEnabled) {
+                                            Modifier
+                                                .glassEffect(hazeState, glassEnabled, glassHeaderStyle)
+                                                .glassBorder(androidx.compose.foundation.shape.RoundedCornerShape(0.dp), glassEnabled)
+                                        } else {
+                                            Modifier.background(MaterialTheme.colorScheme.background)
+                                        },
+                                    )
                                     .padding(horizontal = 8.dp, vertical = 8.dp),
                             )
                         }
                         items(group.items, key = { "tx-${it.tx.id}" }) { item ->
                             SwipeDeleteBox(
                                 item = item,
+                                modifier = Modifier.then(
+                                    if (glassEnabled && hazeState != null) {
+                                        Modifier.hazeSource(hazeState, zIndex = -1f)
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
                                 onDelete = { deleted ->
                                     viewModel.deleteTx(deleted.tx) {
                                         scope.launch {
@@ -448,10 +476,19 @@ private fun FilterSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var pickingStart by remember { mutableStateOf(false) }
     var pickingEnd by remember { mutableStateOf(false) }
+    // Sheets live in their own window, so real Haze blur isn't possible here —
+    // approximate the glass look with a translucent surfaceContainer when the
+    // style is enabled; otherwise the default opaque container is used.
+    val glassEnabled = rememberGlassEnabled()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        containerColor = if (glassEnabled) {
+            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.93f)
+        } else {
+            androidx.compose.material3.BottomSheetDefaults.ContainerColor
+        },
     ) {
         Column(
             modifier = Modifier

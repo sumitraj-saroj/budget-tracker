@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
@@ -38,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,15 +49,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.budgettracker.app.AppViewModel
+import com.budgettracker.app.ui.theme.LocalHazeState
+import com.budgettracker.app.ui.theme.glassBorder
+import com.budgettracker.app.ui.theme.glassEffect
+import com.budgettracker.app.ui.theme.glassSurfaceColor
+import com.budgettracker.app.ui.theme.rememberGlassEnabled
+import com.budgettracker.app.ui.theme.rememberGlassStyle
 import com.budgettracker.app.util.hapticKey
 import com.budgettracker.app.util.hapticTick
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.budgettracker.app.ui.accounts.AccountsScreen
 import com.budgettracker.app.ui.budgets.BudgetEditScreen
 import com.budgettracker.app.ui.budgets.BudgetsScreen
@@ -112,127 +119,131 @@ fun MainNavHost(appViewModel: AppViewModel) {
     val currentRoute = backStackEntry?.destination?.route
     val showChrome = currentRoute in topLevelDestinations.map { it.route }
 
-    // Backup badge on the More tab when there is data and the last backup is stale.
-    val txCount by appViewModel.txCount.collectAsStateWithLifecycle()
-    val prefs by appViewModel.prefs.collectAsStateWithLifecycle()
-    val backupStale = txCount > 15 &&
-        (prefs?.lastBackupAt == null || System.currentTimeMillis() - (prefs?.lastBackupAt ?: 0L) > 14L * 24 * 3600 * 1000)
+    // Backdrop for the liquid-glass floating chrome. The scrolling content is
+    // the haze source; the bottom bar and FAB draw a blurred effect over it.
+    val hazeState = remember { HazeState() }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            if (showChrome) {
-                FloatingBottomBar(
-                    currentRoute = currentRoute,
-                    destinations = topLevelDestinations,
-                    showBackupBadge = backupStale,
-                    onSelect = { navController.navigateTopLevel(it) },
-                )
-            }
-        },
-        floatingActionButton = {
-            if (showChrome) {
-                QuickAddFab(
-                    onQuickAdd = { type ->
-                        navController.navigate("txedit/-1?type=$type")
-                    },
-                )
-            }
-        },
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Routes.HOME,
-            modifier = Modifier.padding(padding),
-            enterTransition = {
-                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
-                    androidx.compose.animation.slideInVertically(
-                        androidx.compose.animation.core.tween(220),
-                    ) { it / 28 }
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                if (showChrome) {
+                    FloatingBottomBar(
+                        currentRoute = currentRoute,
+                        destinations = topLevelDestinations,
+                        onSelect = { navController.navigateTopLevel(it) },
+                    )
+                }
             },
-            exitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150)) },
-            popEnterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) },
-            popExitTransition = {
-                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150)) +
-                    androidx.compose.animation.slideOutVertically(
-                        androidx.compose.animation.core.tween(220),
-                    ) { it / 28 }
+            floatingActionButton = {
+                if (showChrome) {
+                    QuickAddFab(
+                        onQuickAdd = { type ->
+                            navController.navigate("txedit/-1?type=$type")
+                        },
+                    )
+                }
             },
-        ) {
-            composable(Routes.HOME) {
-                HomeScreen(
-                    onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
-                    onAddTx = { navController.navigate(Routes.txEdit(-1)) },
-                    onQuickAdd = { categoryId ->
-                        navController.navigate(Routes.txEditQuick(categoryId))
-                    },
-                    onOpenBudgets = { navController.navigateTopLevel(Routes.BUDGETS) },
-                    onOpenTransactions = { navController.navigateTopLevel(Routes.TXNS_PLAIN) },
-                    onOpenSubscriptions = { navController.navigate(Routes.SUBSCRIPTIONS) },
-                    onOpenGoals = { navController.navigate(Routes.GOALS) },
-                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                )
-            }
-            composable(
-                route = Routes.TXNS,
-                arguments = listOf(
-                    androidx.navigation.navArgument("categoryId") {
-                        type = androidx.navigation.NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = Routes.HOME,
+                // Only apply the top inset: the floating pill and FAB are
+                // overlay chrome, so scrolling content flows beneath them
+                // instead of stopping above a reserved strip.
+                modifier = Modifier
+                    .padding(top = padding.calculateTopPadding())
+                    .hazeSource(hazeState),
+                enterTransition = {
+                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+                        androidx.compose.animation.slideInVertically(
+                            androidx.compose.animation.core.tween(220),
+                        ) { it / 28 }
+                },
+                exitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150)) },
+                popEnterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) },
+                popExitTransition = {
+                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150)) +
+                        androidx.compose.animation.slideOutVertically(
+                            androidx.compose.animation.core.tween(220),
+                        ) { it / 28 }
+                },
             ) {
-                TransactionsScreen(
-                    onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
-                    onAddTx = { navController.navigate(Routes.txEdit(-1)) },
-                )
-            }
-            composable(Routes.STATS) {
-                StatsScreen(
-                    onOpenCategory = { categoryId ->
-                        navController.navigate("${Routes.TXNS_PLAIN}?categoryId=$categoryId")
-                    },
-                )
-            }
-            composable(Routes.BUDGETS) {
-                BudgetsScreen(
-                    onEditBudget = { id -> navController.navigate(Routes.budgetEdit(id)) },
-                    onNewBudget = { navController.navigate(Routes.budgetEdit(-1)) },
-                )
-            }
-            composable(Routes.MORE) {
-                MoreScreen(
-                    onAccounts = { navController.navigate(Routes.ACCOUNTS) },
-                    onGoals = { navController.navigate(Routes.GOALS) },
-                    onDebts = { navController.navigate(Routes.DEBTS) },
-                    onSubscriptions = { navController.navigate(Routes.SUBSCRIPTIONS) },
-                    onSettings = { navController.navigate(Routes.SETTINGS) },
-                )
-            }
-            composable(Routes.ACCOUNTS) { AccountsScreen() }
-            composable(Routes.GOALS) { GoalsScreen() }
-            composable(Routes.DEBTS) { DebtsScreen() }
-            composable(Routes.SUBSCRIPTIONS) { SubscriptionsScreen() }
-            composable(Routes.SETTINGS) { SettingsScreen() }
-            composable(
-                route = Routes.TX_EDIT,
-                arguments = listOf(
-                    androidx.navigation.navArgument("categoryId") {
-                        type = androidx.navigation.NavType.LongType
-                        defaultValue = -1L
-                    },
-                    androidx.navigation.navArgument("type") {
-                        type = androidx.navigation.NavType.StringType
-                        defaultValue = "EXPENSE"
-                    },
-                ),
-            ) { entry ->
-                val id = entry.arguments?.getString("txId")?.toLongOrNull() ?: -1L
-                TransactionEditScreen(txId = id, onDone = { navController.popBackStack() })
-            }
-            composable(Routes.BUDGET_EDIT) { entry ->
-                val id = entry.arguments?.getString("budgetId")?.toLongOrNull() ?: -1L
-                BudgetEditScreen(budgetId = id, onDone = { navController.popBackStack() })
+                composable(Routes.HOME) {
+                    HomeScreen(
+                        onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
+                        onAddTx = { navController.navigate(Routes.txEdit(-1)) },
+                        onQuickAdd = { categoryId ->
+                            navController.navigate(Routes.txEditQuick(categoryId))
+                        },
+                        onOpenBudgets = { navController.navigateTopLevel(Routes.BUDGETS) },
+                        onOpenTransactions = { navController.navigateTopLevel(Routes.TXNS_PLAIN) },
+                        onOpenSubscriptions = { navController.navigate(Routes.SUBSCRIPTIONS) },
+                        onOpenGoals = { navController.navigate(Routes.GOALS) },
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    )
+                }
+                composable(
+                    route = Routes.TXNS,
+                    arguments = listOf(
+                        androidx.navigation.navArgument("categoryId") {
+                            type = androidx.navigation.NavType.LongType
+                            defaultValue = -1L
+                        },
+                    ),
+                ) {
+                    TransactionsScreen(
+                        onTxClick = { id -> navController.navigate(Routes.txEdit(id)) },
+                        onAddTx = { navController.navigate(Routes.txEdit(-1)) },
+                    )
+                }
+                composable(Routes.STATS) {
+                    StatsScreen(
+                        onOpenCategory = { categoryId ->
+                            navController.navigate("${Routes.TXNS_PLAIN}?categoryId=$categoryId")
+                        },
+                    )
+                }
+                composable(Routes.BUDGETS) {
+                    BudgetsScreen(
+                        onEditBudget = { id -> navController.navigate(Routes.budgetEdit(id)) },
+                        onNewBudget = { navController.navigate(Routes.budgetEdit(-1)) },
+                    )
+                }
+                composable(Routes.MORE) {
+                    MoreScreen(
+                        onAccounts = { navController.navigate(Routes.ACCOUNTS) },
+                        onGoals = { navController.navigate(Routes.GOALS) },
+                        onDebts = { navController.navigate(Routes.DEBTS) },
+                        onSubscriptions = { navController.navigate(Routes.SUBSCRIPTIONS) },
+                        onSettings = { navController.navigate(Routes.SETTINGS) },
+                    )
+                }
+                composable(Routes.ACCOUNTS) { AccountsScreen() }
+                composable(Routes.GOALS) { GoalsScreen() }
+                composable(Routes.DEBTS) { DebtsScreen() }
+                composable(Routes.SUBSCRIPTIONS) { SubscriptionsScreen() }
+                composable(Routes.SETTINGS) { SettingsScreen() }
+                composable(
+                    route = Routes.TX_EDIT,
+                    arguments = listOf(
+                        androidx.navigation.navArgument("categoryId") {
+                            type = androidx.navigation.NavType.LongType
+                            defaultValue = -1L
+                        },
+                        androidx.navigation.navArgument("type") {
+                            type = androidx.navigation.NavType.StringType
+                            defaultValue = "EXPENSE"
+                        },
+                    ),
+                ) { entry ->
+                    val id = entry.arguments?.getString("txId")?.toLongOrNull() ?: -1L
+                    TransactionEditScreen(txId = id, onDone = { navController.popBackStack() })
+                }
+                composable(Routes.BUDGET_EDIT) { entry ->
+                    val id = entry.arguments?.getString("budgetId")?.toLongOrNull() ?: -1L
+                    BudgetEditScreen(budgetId = id, onDone = { navController.popBackStack() })
+                }
             }
         }
     }
@@ -308,7 +319,6 @@ private fun QuickAddFab(onQuickAdd: (String) -> Unit) {
 private fun FloatingBottomBar(
     currentRoute: String?,
     destinations: List<TopLevelDestination>,
-    showBackupBadge: Boolean,
     onSelect: (String) -> Unit,
 ) {
     Box(
@@ -317,14 +327,20 @@ private fun FloatingBottomBar(
             .navigationBarsPadding()
             .padding(horizontal = 18.dp, vertical = 10.dp),
     ) {
+        val glass = rememberGlassEnabled()
+        val hazeState = LocalHazeState.current
+        val glassStyle = rememberGlassStyle()
         Surface(
             shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 2.dp,
+            color = glassSurfaceColor(MaterialTheme.colorScheme.surfaceContainer, glass),
+            tonalElevation = if (glass) 0.dp else 2.dp,
             shadowElevation = 10.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(66.dp),
+                .height(66.dp)
+                .clip(RoundedCornerShape(50))
+                .glassEffect(hazeState, glass, glassStyle)
+                .glassBorder(RoundedCornerShape(50), glass),
         ) {
             Row(
                 modifier = Modifier
@@ -367,25 +383,17 @@ private fun FloatingBottomBar(
                                 .align(Alignment.Center),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label,
-                                tint = if (selected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.size(24.dp),
-                            )
-                            if (destination.route == Routes.MORE && showBackupBadge) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .size(10.dp)
-                                        .background(MaterialTheme.colorScheme.error, CircleShape),
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = destination.label,
+                            tint = if (selected) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                     }
                 }
             }

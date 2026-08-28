@@ -43,7 +43,8 @@ fun MoreScreen(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
