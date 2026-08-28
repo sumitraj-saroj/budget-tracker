@@ -211,6 +211,21 @@ fun SettingsScreen(viewModel: SettingsViewModel = androidx.hilt.navigation.compo
                         enabled = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S,
                     )
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("True black (OLED)", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Pure black backgrounds in dark theme",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = prefs.amoledBlack,
+                        onCheckedChange = { viewModel.setAmoledBlack(it) },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 val accentActive = !prefs.useDynamicColor
                 Column(Modifier.alpha(if (accentActive) 1f else 0.35f)) {

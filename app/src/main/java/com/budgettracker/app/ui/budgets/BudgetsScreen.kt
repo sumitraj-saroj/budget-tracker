@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -96,6 +97,15 @@ private fun BudgetCardFull(progress: BudgetProgress, currencyCode: String, onCli
     val fraction = if (progress.budget.amountMinor <= 0) 0f else (progress.spentMinor.toFloat() / progress.budget.amountMinor).coerceIn(0f, 1f)
     val over = progress.remainingMinor < 0
     val allowance = Insights.dailyAllowance(progress)
+    val pace = budgetPace(progress)
+    val barColor = com.budgettracker.app.ui.components.budgetBarColor(
+        progress = fraction,
+        pace = pace,
+        over = over,
+        healthy = MaterialTheme.colorScheme.primary,
+        warn = Color(0xFFF59E0B),
+        danger = MaterialTheme.colorScheme.error,
+    )
 
     Card(
         onClick = onClick,
@@ -123,8 +133,8 @@ private fun BudgetCardFull(progress: BudgetProgress, currencyCode: String, onCli
             Spacer(Modifier.height(12.dp))
             BudgetProgressBar(
                 progress = fraction,
-                pace = budgetPace(progress),
-                color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                pace = pace,
+                color = barColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
             Spacer(Modifier.height(8.dp))

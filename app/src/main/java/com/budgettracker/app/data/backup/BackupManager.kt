@@ -27,6 +27,7 @@ data class PrefsSnapshot(
     val themeMode: String = "SYSTEM",
     val accentArgb: Long = 0xFF10B981,
     val useDynamicColor: Boolean = false,
+    val amoledBlack: Boolean = false,
 )
 
 @Serializable
@@ -93,6 +94,7 @@ class BackupManager @Inject constructor(
                 themeMode = prefs.themeMode.name,
                 accentArgb = prefs.accentArgb,
                 useDynamicColor = prefs.useDynamicColor,
+                amoledBlack = prefs.amoledBlack,
             ),
         )
     }
@@ -120,6 +122,7 @@ class BackupManager @Inject constructor(
             themeMode = backup.prefs.themeMode,
             accentArgb = backup.prefs.accentArgb,
             dynamicColor = backup.prefs.useDynamicColor,
+            amoledBlack = backup.prefs.amoledBlack,
         )
     }
 

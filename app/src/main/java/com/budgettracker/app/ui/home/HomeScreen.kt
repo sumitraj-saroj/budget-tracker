@@ -2,6 +2,7 @@ package com.budgettracker.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,6 +58,7 @@ import kotlin.math.roundToInt
 fun HomeScreen(
     onTxClick: (Long) -> Unit,
     onAddTx: () -> Unit,
+    onQuickAdd: (Long) -> Unit,
     onOpenBudgets: () -> Unit,
     onOpenTransactions: () -> Unit,
     onOpenSubscriptions: () -> Unit,
@@ -72,6 +75,21 @@ fun HomeScreen(
         item { HomeHeader(state.userName, onOpenSettings) }
         item { BalanceHero(state.totalBalanceMinor, state.baseCurrency, state.accountCount) }
         item { SummaryStrip(state.monthIncomeMinor, state.monthExpenseMinor, state.baseCurrency) }
+
+        // Safe-to-spend chip
+        state.dailyAllowanceMinor?.let { allowance ->
+            item { SafeToSpendChip(allowance, state.baseCurrency) }
+        }
+
+        // Quick-add tiles for the most-used categories
+        if (state.topCategories.isNotEmpty()) {
+            item {
+                QuickAddRow(
+                    categories = state.topCategories,
+                    onPick = onQuickAdd,
+                )
+            }
+        }
 
         item {
             HomeSectionLabel(
@@ -292,6 +310,74 @@ private fun CellDivider() {
     )
 }
 
+// ---------- Safe-to-spend chip ----------
+
+@Composable
+private fun SafeToSpendChip(allowanceMinor: Long, currencyCode: String) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "SAFE TO SPEND",
+            style = MaterialTheme.typography.labelSmall.copy(
+                letterSpacing = 1.2.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            "${formatMoney(allowanceMinor, Currencies.byCode(currencyCode))}/day",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+    }
+}
+
+// ---------- Quick-add tiles ----------
+
+@Composable
+private fun QuickAddRow(categories: List<com.budgettracker.app.data.db.CategoryEntity>, onPick: (Long) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        categories.forEach { category ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onPick(category.id) },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(category.emoji, fontSize = 15.sp)
+                    Text(
+                        category.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ---------- Section label ----------
 
 @Composable
@@ -360,6 +446,15 @@ private fun BudgetCard(progress: BudgetProgress, currencyCode: String, onClick: 
     }
     val over = progress.remainingMinor < 0
     val currency = Currencies.byCode(currencyCode)
+    val pace = budgetPace(progress)
+    val barColor = com.budgettracker.app.ui.components.budgetBarColor(
+        progress = fraction,
+        pace = pace,
+        over = over,
+        healthy = MaterialTheme.colorScheme.primary,
+        warn = Color(0xFFF59E0B),
+        danger = MaterialTheme.colorScheme.error,
+    )
 
     Card(
         onClick = onClick,
@@ -384,14 +479,14 @@ private fun BudgetCard(progress: BudgetProgress, currencyCode: String, onClick: 
                     if (over) "Over by ${formatMoney(-progress.remainingMinor, currency)}"
                     else "${formatMoney(progress.remainingMinor, currency)} left",
                     style = MaterialTheme.typography.titleSmall,
-                    color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    color = if (over) MaterialTheme.colorScheme.error else barColor,
                 )
             }
             Spacer(Modifier.height(10.dp))
             BudgetProgressBar(
                 progress = fraction,
-                pace = budgetPace(progress),
-                color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                pace = pace,
+                color = barColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
             Spacer(Modifier.height(8.dp))

@@ -24,6 +24,7 @@ data class UserPrefs(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val accentArgb: Long = 0xFF10B981,
     val useDynamicColor: Boolean = false,
+    val amoledBlack: Boolean = false,
     val biometricLock: Boolean = false,
     val googleEmail: String? = null,
     val googleName: String? = null,
@@ -42,6 +43,7 @@ class PrefsRepository @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT = longPreferencesKey("accent_argb")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val AMOLED_BLACK = booleanPreferencesKey("amoled_black")
         val BIOMETRIC_LOCK = booleanPreferencesKey("biometric_lock")
         val GOOGLE_EMAIL = stringPreferencesKey("google_email")
         val GOOGLE_NAME = stringPreferencesKey("google_name")
@@ -57,6 +59,7 @@ class PrefsRepository @Inject constructor(
             themeMode = p[Keys.THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
             accentArgb = p[Keys.ACCENT] ?: 0xFF10B981,
             useDynamicColor = p[Keys.DYNAMIC_COLOR] ?: false,
+            amoledBlack = p[Keys.AMOLED_BLACK] ?: false,
             biometricLock = p[Keys.BIOMETRIC_LOCK] ?: false,
             googleEmail = p[Keys.GOOGLE_EMAIL],
             googleName = p[Keys.GOOGLE_NAME],
@@ -77,6 +80,8 @@ class PrefsRepository @Inject constructor(
 
     suspend fun setDynamicColor(enabled: Boolean) = context.dataStore.edit { it[Keys.DYNAMIC_COLOR] = enabled }
 
+    suspend fun setAmoledBlack(enabled: Boolean) = context.dataStore.edit { it[Keys.AMOLED_BLACK] = enabled }
+
     suspend fun setBiometricLock(enabled: Boolean) = context.dataStore.edit { it[Keys.BIOMETRIC_LOCK] = enabled }
 
     suspend fun setGoogleAccount(email: String?, name: String?, picture: String?) = context.dataStore.edit {
@@ -92,13 +97,21 @@ class PrefsRepository @Inject constructor(
     suspend fun setLastBackupAt(at: Long) = context.dataStore.edit { it[Keys.LAST_BACKUP] = at }
 
     /** Restore prefs from a backup (only user-visible choices, no security flags). */
-    suspend fun restoreFromBackup(displayName: String, baseCurrency: String, themeMode: String, accentArgb: Long, dynamicColor: Boolean) {
+    suspend fun restoreFromBackup(
+        displayName: String,
+        baseCurrency: String,
+        themeMode: String,
+        accentArgb: Long,
+        dynamicColor: Boolean,
+        amoledBlack: Boolean = false,
+    ) {
         context.dataStore.edit {
             it[Keys.DISPLAY_NAME] = displayName
             it[Keys.BASE_CURRENCY] = baseCurrency
             it[Keys.THEME_MODE] = themeMode
             it[Keys.ACCENT] = accentArgb
             it[Keys.DYNAMIC_COLOR] = dynamicColor
+            it[Keys.AMOLED_BLACK] = amoledBlack
         }
     }
 }

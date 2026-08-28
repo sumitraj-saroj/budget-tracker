@@ -53,6 +53,7 @@ import com.budgettracker.app.data.db.TxType
 import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.formatMoney
+import com.budgettracker.app.util.hapticTick
 
 val IncomeGreen = Color(0xFF16A34A)
 
@@ -70,8 +71,8 @@ fun AmountText(
     Text(
         text = formatMoney(amountMinor, Currencies.byCode(currencyCode), showSymbol = showSymbol, signed = signed),
         modifier = modifier,
-        color = if (color == Color.Unspecified) androidx.compose.material3.LocalContentColor.current else color,
-        style = style,
+        color = if (color == Color.Unspecified) LocalContentColor.current else color,
+        style = style.copy(fontFeatureSettings = "tnum"),
         fontWeight = fontWeight,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -175,9 +176,11 @@ fun <T> SwipeDeleteBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val view = androidx.compose.ui.platform.LocalView.current
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
+                view.hapticTick()
                 onDelete(item)
                 true
             } else {
@@ -209,6 +212,27 @@ fun <T> SwipeDeleteBox(
             }
         },
     )
+}
+
+/** How spending pace compares to the elapsed period: green → amber → red. */
+fun budgetBarColor(
+    progress: Float,
+    pace: Float,
+    over: Boolean,
+    healthy: Color,
+    warn: Color,
+    danger: Color,
+): Color = when {
+    over || progress >= 0.999f -> danger
+    pace <= 0.05f -> healthy
+    else -> {
+        val ratio = progress / pace
+        when {
+            ratio > 1.05f -> danger
+            ratio > 0.8f -> warn
+            else -> healthy
+        }
+    }
 }
 
 /**

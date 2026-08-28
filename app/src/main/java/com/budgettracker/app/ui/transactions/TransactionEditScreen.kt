@@ -68,6 +68,7 @@ import com.budgettracker.app.util.Currencies
 import com.budgettracker.app.util.Fmt
 import com.budgettracker.app.util.convertMinor
 import com.budgettracker.app.util.formatMoney
+import com.budgettracker.app.util.hapticKey
 import com.budgettracker.app.util.parseAmountMinor
 
 private val CategoryColorPalette = listOf(
@@ -83,6 +84,7 @@ fun TransactionEditScreen(
     viewModel: TransactionEditViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val view = androidx.compose.ui.platform.LocalView.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showNewCategory by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -105,7 +107,13 @@ fun TransactionEditScreen(
                             Icon(Icons.Rounded.Delete, contentDescription = "Delete")
                         }
                     }
-                    TextButton(onClick = { viewModel.save(onDone) }, enabled = state.loaded) { Text("Save") }
+                    TextButton(
+                        onClick = {
+                            view.hapticKey()
+                            viewModel.save(onDone)
+                        },
+                        enabled = state.loaded,
+                    ) { Text("Save") }
                 },
             )
         },

@@ -355,11 +355,33 @@ private fun ContributeDialog(
     var amountText by remember { mutableStateOf("") }
     val currency = Currencies.byCode(baseCurrencyCode)
 
+    // Quick-amount presets in minor units (e.g. ₹100 / ₹500 / ₹1,000).
+    val scale = Math.pow(10.0, currency.minorDigits.toDouble()).toLong()
+    val presets = listOf(100L * scale, 500L * scale, 1000L * scale)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add to \"${goal.name}\"") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    presets.forEach { preset ->
+                        FilledTonalButton(
+                            onClick = {
+                                amountText = java.math.BigDecimal(preset)
+                                    .movePointLeft(currency.minorDigits)
+                                    .stripTrailingZeros()
+                                    .toPlainString()
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                formatMoney(preset, currency, showSymbol = false),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' }.take(12) },

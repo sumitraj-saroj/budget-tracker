@@ -65,6 +65,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { prefsRepository.setDynamicColor(enabled) }
     }
 
+    fun setAmoledBlack(enabled: Boolean) {
+        viewModelScope.launch { prefsRepository.setAmoledBlack(enabled) }
+    }
+
     fun setBiometricLock(enabled: Boolean) {
         viewModelScope.launch { prefsRepository.setBiometricLock(enabled) }
     }

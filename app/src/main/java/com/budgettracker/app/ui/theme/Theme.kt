@@ -31,6 +31,7 @@ fun BudgetTrackerTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     accent: Color = AccentPresets.first(),
     useDynamicColor: Boolean = false,
+    amoledBlack: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (themeMode) {
@@ -39,11 +40,23 @@ fun BudgetTrackerTheme(
         ThemeMode.DARK -> true
     }
     val context = LocalContext.current
-    val colorScheme = when {
+    val baseScheme = when {
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> darkScheme(accent)
         else -> lightScheme(accent)
+    }
+    // True-black OLED: pure black background/surfaces in dark mode.
+    val colorScheme = if (darkTheme && amoledBlack) {
+        baseScheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceDim = Color.Black,
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color.Black,
+        )
+    } else {
+        baseScheme
     }
 
     MaterialTheme(

@@ -48,6 +48,10 @@ class TransactionEditViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val txId: Long = savedStateHandle.get<String>("txId")?.toLongOrNull() ?: -1L
+    private val quickCategoryId: Long = savedStateHandle.get<Long>("categoryId") ?: -1L
+    private val presetType: TxType? = savedStateHandle.get<String>("type")?.let { raw ->
+        TxType.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+    }
 
     private val _state = MutableStateFlow(TxEditState())
     val state: StateFlow<TxEditState> = _state.asStateFlow()
@@ -66,6 +70,16 @@ class TransactionEditViewModel @Inject constructor(
                         }
                         if (next.type == TxType.TRANSFER && next.toAccountId == null) {
                             next = next.copy(toAccountId = next.accounts.firstOrNull { it.id != next.accountId }?.id)
+                        }
+                        if (txId <= 0) {
+                            // Apply FAB long-press preset type
+                            if (presetType != null && next.type != presetType) {
+                                next = applyType(next, presetType)
+                            }
+                            // Apply quick-add category prefill (from Home tiles)
+                            if (quickCategoryId > 0 && next.categoryId == null) {
+                                next = next.copy(categoryId = categories.firstOrNull { it.id == quickCategoryId }?.id)
+                            }
                         }
                         next
                     }
@@ -101,23 +115,25 @@ class TransactionEditViewModel @Inject constructor(
     }
 
     fun setType(type: TxType) {
-        _state.update { s ->
-            var next = s.copy(type = type, amountError = false)
-            if (type != TxType.TRANSFER) {
-                val wanted = if (type == TxType.EXPENSE) CategoryType.EXPENSE else CategoryType.INCOME
-                val currentValid = next.categoryId?.let { id -> next.categories.firstOrNull { it.id == id && it.type == wanted } }
-                if (currentValid == null) {
-                    next = next.copy(
-                        categoryId = next.categories.firstOrNull { it.type == wanted && it.name == "Other" }?.id
-                            ?: next.categories.firstOrNull { it.type == wanted }?.id,
-                    )
-                }
+        _state.update { applyType(it, type) }
+    }
+
+    private fun applyType(s: TxEditState, type: TxType): TxEditState {
+        var next = s.copy(type = type, amountError = false)
+        if (type != TxType.TRANSFER) {
+            val wanted = if (type == TxType.EXPENSE) CategoryType.EXPENSE else CategoryType.INCOME
+            val currentValid = next.categoryId?.let { id -> next.categories.firstOrNull { it.id == id && it.type == wanted } }
+            if (currentValid == null) {
+                next = next.copy(
+                    categoryId = next.categories.firstOrNull { it.type == wanted && it.name == "Other" }?.id
+                        ?: next.categories.firstOrNull { it.type == wanted }?.id,
+                )
             }
-            if (type == TxType.TRANSFER && next.toAccountId == null) {
-                next = next.copy(toAccountId = next.accounts.firstOrNull { it.id != next.accountId }?.id)
-            }
-            next
         }
+        if (type == TxType.TRANSFER && next.toAccountId == null) {
+            next = next.copy(toAccountId = next.accounts.firstOrNull { it.id != next.accountId }?.id)
+        }
+        return next
     }
 
     fun setAmount(text: String) {

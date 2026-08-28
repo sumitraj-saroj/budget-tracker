@@ -9,6 +9,7 @@ import com.budgettracker.app.data.TxDetailed
 import com.budgettracker.app.data.UserPrefs
 import com.budgettracker.app.data.db.AccountEntity
 import com.budgettracker.app.data.db.BudgetEntity
+import com.budgettracker.app.data.db.CategoryEntity
 import com.budgettracker.app.data.db.GoalEntity
 import com.budgettracker.app.data.db.SubscriptionEntity
 import com.budgettracker.app.domain.BudgetProgress
@@ -44,6 +45,8 @@ data class HomeUiState(
     val recent: List<TxDetailed> = emptyList(),
     val lastBackupAt: Long? = null,
     val txCount: Int = 0,
+    val topCategories: List<CategoryEntity> = emptyList(),
+    val dailyAllowanceMinor: Long? = null,
 )
 
 @HiltViewModel
@@ -77,6 +80,27 @@ class HomeViewModel @Inject constructor(
         val month = Periods.currentMonth()
         val today = Fmt.toLocalDate(System.currentTimeMillis())
         val accountById = core.balances.associate { it.account.id to it.account }
+        val budgetProgress = core.budgets.map { Insights.budgetProgress(it, core.txs, prefs.baseCurrency) }
+
+        // Most-used expense categories for quick-add tiles.
+        val topCategories = core.txs.asSequence()
+            .filter { it.tx.type == com.budgettracker.app.data.db.TxType.EXPENSE && it.category != null }
+            .groupingBy { it.category!!.id }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .take(3)
+            .mapNotNull { entry -> core.txs.firstOrNull { it.tx.categoryId == entry.key }?.category }
+
+        // Safe-to-spend per day: leftover budget across all budgets / days left.
+        val dailyAllowance = if (budgetProgress.isEmpty()) {
+            null
+        } else {
+            val remaining = budgetProgress.sumOf { it.remainingMinor.coerceAtLeast(0L) }
+            val daysLeft = budgetProgress.maxOf { it.daysLeft }.coerceAtLeast(1)
+            remaining / daysLeft
+        }
+
         return HomeUiState(
             loading = false,
             userName = prefs.displayName,
@@ -85,7 +109,7 @@ class HomeViewModel @Inject constructor(
             accountCount = core.balances.count { !it.account.isArchived },
             monthIncomeMinor = Insights.sumBetween(core.txs, com.budgettracker.app.data.db.TxType.INCOME, month, prefs.baseCurrency),
             monthExpenseMinor = Insights.sumBetween(core.txs, com.budgettracker.app.data.db.TxType.EXPENSE, month, prefs.baseCurrency),
-            budgets = core.budgets.map { Insights.budgetProgress(it, core.txs, prefs.baseCurrency) },
+            budgets = budgetProgress,
             upcoming = core.subs
                 .filter { it.isActive }
                 .map { sub ->
@@ -101,6 +125,8 @@ class HomeViewModel @Inject constructor(
             recent = core.txs.take(8),
             lastBackupAt = prefs.lastBackupAt,
             txCount = core.txs.size,
+            topCategories = topCategories,
+            dailyAllowanceMinor = dailyAllowance,
         )
     }
 
