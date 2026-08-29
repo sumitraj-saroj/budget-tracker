@@ -42,6 +42,7 @@ import com.budgettracker.app.data.FinanceRepository
 import com.budgettracker.app.data.PrefsRepository
 import com.budgettracker.app.domain.Insights
 import com.budgettracker.app.util.Currencies
+import com.budgettracker.app.util.Periods
 import com.budgettracker.app.util.formatMoney
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -55,7 +56,9 @@ import javax.inject.Singleton
 data class WidgetSnapshot(
     val baseCurrency: String,
     val totalBalanceMinor: Long,
-    val safeToSpendMinor: Long?,
+    val monthExpenseMinor: Long,
+    val totalExpenseMinor: Long,
+    val expenseCount: Int,
 )
 
 @Singleton
@@ -68,11 +71,18 @@ class WidgetDataProvider @Inject constructor(
         val base = prefs.baseCurrency
         val txs = repository.transactionsDetailed().first()
         val balances = repository.accountBalances().first()
-        val total = Insights.totalBalanceBase(balances, base)
-        val safeToSpend = Insights.safeToSpendPerDay(
-            repository.budgets.first().map { Insights.budgetProgress(it, txs, base) },
+        val totalBalance = Insights.totalBalanceBase(balances, base)
+        val month = Periods.currentMonth()
+        val monthExpenses = Insights.sumBetween(txs, com.budgettracker.app.data.db.TxType.EXPENSE, month, base)
+        val allExpenses = txs.filter { it.tx.type == com.budgettracker.app.data.db.TxType.EXPENSE }
+        val totalExpenses = allExpenses.sumOf { Insights.txAmountInBase(it, base) }
+        return WidgetSnapshot(
+            baseCurrency = base,
+            totalBalanceMinor = totalBalance,
+            monthExpenseMinor = monthExpenses,
+            totalExpenseMinor = totalExpenses,
+            expenseCount = allExpenses.size,
         )
-        return WidgetSnapshot(baseCurrency = base, totalBalanceMinor = total, safeToSpendMinor = safeToSpend)
     }
 }
 
@@ -94,7 +104,13 @@ class BudgetWidget : GlanceAppWidget() {
         }.onFailure {
             android.util.Log.e("BudgetWidget", "Failed to fetch widget snapshot", it)
         }.getOrElse {
-            WidgetSnapshot(baseCurrency = "USD", totalBalanceMinor = 0, safeToSpendMinor = null)
+            WidgetSnapshot(
+                baseCurrency = "USD",
+                totalBalanceMinor = 0,
+                monthExpenseMinor = 0,
+                totalExpenseMinor = 0,
+                expenseCount = 0,
+            )
         }
         android.util.Log.d("BudgetWidget", "provideGlance snapshot: $snapshot")
         provideContent {
@@ -105,18 +121,8 @@ class BudgetWidget : GlanceAppWidget() {
     @Composable
     private fun Content(snapshot: WidgetSnapshot, context: Context) {
         val currency = Currencies.byCode(snapshot.baseCurrency)
-        val label: String
-        val amount: String
-        val footer: String
-        if (snapshot.safeToSpendMinor != null) {
-            label = "Safe to spend / day"
-            amount = formatMoney(snapshot.safeToSpendMinor, currency)
-            footer = "Balance ${formatMoney(snapshot.totalBalanceMinor, currency)}"
-        } else {
-            label = "Total balance"
-            amount = formatMoney(snapshot.totalBalanceMinor, currency)
-            footer = "Add a budget to see safe-to-spend"
-        }
+        val monthExpenseFormatted = formatMoney(snapshot.monthExpenseMinor, currency)
+        val balanceFormatted = formatMoney(snapshot.totalBalanceMinor, currency)
 
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_MAIN
@@ -146,21 +152,21 @@ class BudgetWidget : GlanceAppWidget() {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        label.uppercase(),
-                        style = TextStyle(color = ColorProvider(Muted), fontSize = 11.sp),
+                        "THIS MONTH'S EXPENSES",
+                        style = TextStyle(color = ColorProvider(Muted), fontSize = 11.sp, fontWeight = FontWeight.Medium),
                         modifier = GlanceModifier.defaultWeight(),
                     )
                     AddButton(context, addIconBitmap, addBtnBgBitmap)
                 }
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Text(
-                    amount,
+                    monthExpenseFormatted,
                     style = TextStyle(color = ColorProvider(Accent), fontSize = 24.sp, fontWeight = FontWeight.Bold),
                     maxLines = 1,
                 )
                 Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
-                    footer,
+                    "Balance $balanceFormatted • Tap to see all",
                     style = TextStyle(color = ColorProvider(Faint), fontSize = 11.sp),
                     maxLines = 1,
                 )
