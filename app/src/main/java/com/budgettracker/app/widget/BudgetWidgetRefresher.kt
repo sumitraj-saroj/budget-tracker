@@ -47,7 +47,13 @@ class BudgetWidgetRefresher @Inject constructor(
     }
 
     suspend fun refresh() {
-        runCatching { BudgetWidget().updateAll(context) }
+        runCatching {
+            android.util.Log.d("BudgetWidgetRefresher", "Calling BudgetWidget().updateAll(context)")
+            BudgetWidget().updateAll(context)
+            android.util.Log.d("BudgetWidgetRefresher", "BudgetWidget().updateAll(context) succeeded")
+        }.onFailure {
+            android.util.Log.e("BudgetWidgetRefresher", "Failed to update widget", it)
+        }
     }
 
     companion object {

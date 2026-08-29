@@ -13,6 +13,8 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.appWidgetBackground
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
@@ -82,15 +84,21 @@ interface BudgetWidgetEntryPoint {
 class BudgetWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val provider = EntryPointAccessors
-            .fromApplication(context.applicationContext, BudgetWidgetEntryPoint::class.java)
-            .widgetDataProvider()
-        // A failed snapshot must never abort the update — otherwise the widget
-        // sits on the loading layout until the next refresh succeeds.
-        val snapshot = runCatching { provider.snapshot() }.getOrElse {
+        android.util.Log.d("BudgetWidget", "provideGlance started for id: $id")
+        val snapshot = runCatching {
+            val provider = EntryPointAccessors
+                .fromApplication(context.applicationContext, BudgetWidgetEntryPoint::class.java)
+                .widgetDataProvider()
+            provider.snapshot()
+        }.onFailure {
+            android.util.Log.e("BudgetWidget", "Failed to fetch widget snapshot", it)
+        }.getOrElse {
             WidgetSnapshot(baseCurrency = "USD", totalBalanceMinor = 0, safeToSpendMinor = null)
         }
-        provideContent { Content(snapshot, context) }
+        android.util.Log.d("BudgetWidget", "provideGlance snapshot: $snapshot")
+        provideContent {
+            Content(snapshot, context)
+        }
     }
 
     @Composable
@@ -109,20 +117,25 @@ class BudgetWidget : GlanceAppWidget() {
             footer = "Add a budget to see safe-to-spend"
         }
 
-        // Whole-widget tap opens the app. Kept on the root Box (not an overlay)
-        // so the AddButton child stays tappable — an overlay Box drawn after this
-        // Column would swallow its clicks.
+        val openAppIntent = Intent(context, MainActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+        }
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
+                .appWidgetBackground()
                 .background(R.drawable.widget_bg)
-                .clickable(androidx.glance.action.actionStartActivity(MainActivity::class.java)),
+                .cornerRadius(22.dp)
+                .clickable(actionStartActivity(openAppIntent)),
             contentAlignment = Alignment.CenterStart,
         ) {
             Column(
                 modifier = GlanceModifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(14.dp),
             ) {
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
@@ -153,21 +166,20 @@ class BudgetWidget : GlanceAppWidget() {
 
     @Composable
     private fun AddButton(context: Context) {
+        val quickAddIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.budgettracker.app.ACTION_QUICK_ADD_EXPENSE"
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(MainActivity.EXTRA_QUICK_ADD_TYPE, "EXPENSE")
+        }
+
         Box(
             modifier = GlanceModifier
                 .size(34.dp)
                 .background(ColorProvider(Accent))
-                .clickable(
-                    actionStartActivity(
-                        Intent(context, MainActivity::class.java)
-                            .setFlags(
-                                Intent.FLAG_ACTIVITY_NEW_TASK or
-                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
-                            )
-                            .putExtra(MainActivity.EXTRA_QUICK_ADD_TYPE, "EXPENSE"),
-                    ),
-                ),
+                .cornerRadius(17.dp)
+                .clickable(actionStartActivity(quickAddIntent)),
             contentAlignment = Alignment.Center,
         ) {
             androidx.glance.Image(
