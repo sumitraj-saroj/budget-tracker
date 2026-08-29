@@ -109,10 +109,14 @@ class BudgetWidget : GlanceAppWidget() {
             footer = "Add a budget to see safe-to-spend"
         }
 
+        // Whole-widget tap opens the app. Kept on the root Box (not an overlay)
+        // so the AddButton child stays tappable — an overlay Box drawn after this
+        // Column would swallow its clicks.
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(R.drawable.widget_bg),
+                .background(R.drawable.widget_bg)
+                .clickable(androidx.glance.action.actionStartActivity(MainActivity::class.java)),
             contentAlignment = Alignment.CenterStart,
         ) {
             Column(
@@ -144,13 +148,6 @@ class BudgetWidget : GlanceAppWidget() {
                     maxLines = 1,
                 )
             }
-
-            // Whole-widget tap opens the app.
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .clickable(androidx.glance.action.actionStartActivity(MainActivity::class.java)),
-            ) {}
         }
     }
 
