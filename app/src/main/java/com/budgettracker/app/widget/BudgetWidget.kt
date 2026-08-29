@@ -2,12 +2,17 @@ package com.budgettracker.app.widget
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -33,7 +38,6 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.budgettracker.app.MainActivity
-import com.budgettracker.app.R
 import com.budgettracker.app.data.FinanceRepository
 import com.budgettracker.app.data.PrefsRepository
 import com.budgettracker.app.domain.Insights
@@ -42,7 +46,6 @@ import com.budgettracker.app.util.formatMoney
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -72,8 +75,6 @@ class WidgetDataProvider @Inject constructor(
         return WidgetSnapshot(baseCurrency = base, totalBalanceMinor = total, safeToSpendMinor = safeToSpend)
     }
 }
-
-/** Re-renders the widget after in-app data changes. See [BudgetWidgetRefresher]. */
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -123,11 +124,14 @@ class BudgetWidget : GlanceAppWidget() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         }
 
+        val addIconBitmap = remember(context) { createAddIconBitmap(context) }
+        val addBtnBgBitmap = remember(context) { createAddButtonBgBitmap(context) }
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .appWidgetBackground()
-                .background(R.drawable.widget_bg)
+                .background(BgColor)
                 .cornerRadius(22.dp)
                 .clickable(actionStartActivity(openAppIntent)),
             contentAlignment = Alignment.CenterStart,
@@ -146,7 +150,7 @@ class BudgetWidget : GlanceAppWidget() {
                         style = TextStyle(color = ColorProvider(Muted), fontSize = 11.sp),
                         modifier = GlanceModifier.defaultWeight(),
                     )
-                    AddButton(context)
+                    AddButton(context, addIconBitmap, addBtnBgBitmap)
                 }
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Text(
@@ -165,7 +169,7 @@ class BudgetWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun AddButton(context: Context) {
+    private fun AddButton(context: Context, iconBitmap: Bitmap, bgBitmap: Bitmap) {
         val quickAddIntent = Intent(context, MainActivity::class.java).apply {
             action = "com.budgettracker.app.ACTION_QUICK_ADD_EXPENSE"
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -177,23 +181,51 @@ class BudgetWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .size(34.dp)
-                .background(ColorProvider(Accent))
-                .cornerRadius(17.dp)
+                .background(ImageProvider(bgBitmap))
                 .clickable(actionStartActivity(quickAddIntent)),
             contentAlignment = Alignment.Center,
         ) {
-            androidx.glance.Image(
-                provider = ImageProvider(R.drawable.ic_widget_add),
+            Image(
+                provider = ImageProvider(iconBitmap),
                 contentDescription = "Add expense",
-                modifier = GlanceModifier.size(20.dp),
+                modifier = GlanceModifier.size(18.dp),
             )
         }
     }
 
     companion object {
+        private val BgColor = Color(0xFF101828)
         private val Accent = Color(0xFF34D399)
         private val Muted = Color(0xFF94A3B8)
         private val Faint = Color(0xFF64748B)
+
+        private fun createAddIconBitmap(context: Context): Bitmap {
+            val sizePx = (20 * context.resources.displayMetrics.density).toInt().coerceAtLeast(24)
+            val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                strokeWidth = sizePx * 0.16f
+                strokeCap = Paint.Cap.ROUND
+            }
+            val mid = sizePx / 2f
+            val pad = sizePx * 0.22f
+            canvas.drawLine(pad, mid, sizePx - pad, mid, paint)
+            canvas.drawLine(mid, pad, mid, sizePx - pad, paint)
+            return bitmap
+        }
+
+        private fun createAddButtonBgBitmap(context: Context): Bitmap {
+            val sizePx = (34 * context.resources.displayMetrics.density).toInt().coerceAtLeast(36)
+            val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF34D399.toInt()
+            }
+            val radius = sizePx / 2f
+            canvas.drawCircle(radius, radius, radius, paint)
+            return bitmap
+        }
     }
 }
 
