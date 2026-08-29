@@ -38,6 +38,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.budgettracker.app.MainActivity
+import com.budgettracker.app.R
 import com.budgettracker.app.data.FinanceRepository
 import com.budgettracker.app.data.PrefsRepository
 import com.budgettracker.app.domain.Insights
@@ -131,13 +132,12 @@ class BudgetWidget : GlanceAppWidget() {
         }
 
         val addIconBitmap = remember(context) { createAddIconBitmap(context) }
-        val addBtnBgBitmap = remember(context) { createAddButtonBgBitmap(context) }
 
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .appWidgetBackground()
-                .background(BgColor)
+                .background(WidgetBg)
                 .cornerRadius(22.dp)
                 .clickable(actionStartActivity(openAppIntent)),
             contentAlignment = Alignment.CenterStart,
@@ -153,21 +153,32 @@ class BudgetWidget : GlanceAppWidget() {
                 ) {
                     Text(
                         "THIS MONTH'S EXPENSES",
-                        style = TextStyle(color = ColorProvider(Muted), fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                        style = TextStyle(
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
                         modifier = GlanceModifier.defaultWeight(),
                     )
-                    AddButton(context, addIconBitmap, addBtnBgBitmap)
+                    AddButton(context, addIconBitmap)
                 }
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Text(
                     monthExpenseFormatted,
-                    style = TextStyle(color = ColorProvider(Accent), fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(
+                        color = TextPrimary,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
                     maxLines = 1,
                 )
                 Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
                     "Balance $balanceFormatted • Tap to see all",
-                    style = TextStyle(color = ColorProvider(Faint), fontSize = 11.sp),
+                    style = TextStyle(
+                        color = TextFaint,
+                        fontSize = 11.sp,
+                    ),
                     maxLines = 1,
                 )
             }
@@ -175,7 +186,7 @@ class BudgetWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun AddButton(context: Context, iconBitmap: Bitmap, bgBitmap: Bitmap) {
+    private fun AddButton(context: Context, iconBitmap: Bitmap) {
         val quickAddIntent = Intent(context, MainActivity::class.java).apply {
             action = "com.budgettracker.app.ACTION_QUICK_ADD_EXPENSE"
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -187,7 +198,8 @@ class BudgetWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .size(34.dp)
-                .background(ImageProvider(bgBitmap))
+                .background(BtnBg)
+                .cornerRadius(17.dp)
                 .clickable(actionStartActivity(quickAddIntent)),
             contentAlignment = Alignment.Center,
         ) {
@@ -200,10 +212,11 @@ class BudgetWidget : GlanceAppWidget() {
     }
 
     companion object {
-        private val BgColor = Color(0xFF101828)
-        private val Accent = Color(0xFF34D399)
-        private val Muted = Color(0xFF94A3B8)
-        private val Faint = Color(0xFF64748B)
+        private val WidgetBg = ColorProvider(R.color.widget_bg)
+        private val TextPrimary = ColorProvider(R.color.widget_text_primary)
+        private val TextMuted = ColorProvider(R.color.widget_text_muted)
+        private val TextFaint = ColorProvider(R.color.widget_text_faint)
+        private val BtnBg = ColorProvider(R.color.widget_btn_bg)
 
         private fun createAddIconBitmap(context: Context): Bitmap {
             val sizePx = (20 * context.resources.displayMetrics.density).toInt().coerceAtLeast(24)
@@ -218,18 +231,6 @@ class BudgetWidget : GlanceAppWidget() {
             val pad = sizePx * 0.22f
             canvas.drawLine(pad, mid, sizePx - pad, mid, paint)
             canvas.drawLine(mid, pad, mid, sizePx - pad, paint)
-            return bitmap
-        }
-
-        private fun createAddButtonBgBitmap(context: Context): Bitmap {
-            val sizePx = (34 * context.resources.displayMetrics.density).toInt().coerceAtLeast(36)
-            val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0xFF34D399.toInt()
-            }
-            val radius = sizePx / 2f
-            canvas.drawCircle(radius, radius, radius, paint)
             return bitmap
         }
     }

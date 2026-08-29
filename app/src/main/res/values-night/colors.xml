@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="app_background">#121118</color>
+    <color name="widget_bg">#101828</color>
+    <color name="widget_text_primary">#F8FAFC</color>
+    <color name="widget_text_muted">#94A3B8</color>
+    <color name="widget_text_faint">#64748B</color>
+    <color name="widget_btn_bg">#34D399</color>
 </resources>
